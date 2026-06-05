@@ -1,10 +1,10 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useSearchParams } from 'next/navigation'
 import { Plus, Play, Trash2, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react'
 
-export default function CompetitorPage() {
+function CompetitorPageInner() {
   const params = useSearchParams()
   const [clients, setClients] = useState([])
   const [clientId, setClientId] = useState(params.get('client') || '')
@@ -165,5 +165,12 @@ export default function CompetitorPage() {
         </div>
       )}
     </div>
+  )
+}
+export default function CompetitorPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading...</div>}>
+      <CompetitorPageInner />
+    </Suspense>
   )
 }

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useSearchParams } from 'next/navigation'
 import { Play, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
@@ -7,7 +7,7 @@ import { Play, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
 const AD_TYPES = ['Search ads (Google)','Responsive display ads','Meta feed ads','Meta story ads','YouTube bumper ads','LinkedIn sponsored content']
 const OBJECTIVES = ['Drive conversions','Generate leads','Increase brand awareness','Drive website traffic','Promote an offer/discount','App installs']
 
-export default function CreativePage() {
+function CreativePageInner() {
   const params = useSearchParams()
   const [clients, setClients] = useState([])
   const [clientId, setClientId] = useState(params.get('client') || '')
@@ -155,5 +155,12 @@ export default function CreativePage() {
         </>
       )}
     </div>
+  )
+}
+export default function CreativePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading...</div>}>
+      <CreativePageInner />
+    </Suspense>
   )
 }

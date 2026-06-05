@@ -1,12 +1,12 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useSearchParams } from 'next/navigation'
 import { extractRealRows, parseGoogleAds, parseMetaAds, autoDetectPlatform } from '@/lib/csvParser'
 import { Upload, Play, FileText, X, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
-export default function AuditPage() {
+function AuditPageInner() {
   const params = useSearchParams()
   const [clients, setClients] = useState([])
   const [clientId, setClientId] = useState(params.get('client') || '')
@@ -196,5 +196,12 @@ export default function AuditPage() {
         </div>
       )}
     </div>
+  )
+}
+export default function AuditPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading...</div>}>
+      <AuditPageInner />
+    </Suspense>
   )
 }

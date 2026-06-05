@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase'
 import { useSearchParams } from 'next/navigation'
 import { Play, Download, ChevronDown, ChevronUp } from 'lucide-react'
@@ -7,7 +7,7 @@ import { Play, Download, ChevronDown, ChevronUp } from 'lucide-react'
 const CHANNELS = ['Google Search','Google Display','Google Shopping','YouTube','Meta (Facebook/Instagram)','TikTok','LinkedIn','Snapchat','SEO','Email Marketing']
 const GOALS = ['increase conversions','increase ROAS','reduce CPA','grow brand awareness','increase leads','drive app installs','increase e-commerce revenue']
 
-export default function StrategyPage() {
+function StrategyPageInner() {
   const params = useSearchParams()
   const [clients, setClients] = useState([])
   const [clientId, setClientId] = useState(params.get('client') || '')
@@ -181,5 +181,12 @@ export default function StrategyPage() {
         </div>
       )}
     </div>
+  )
+}
+export default function StrategyPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading...</div>}>
+      <StrategyPageInner />
+    </Suspense>
   )
 }
