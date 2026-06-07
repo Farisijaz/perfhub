@@ -1,9 +1,6 @@
 import './globals.css'
 
-export const metadata = {
-  title: 'PerfHub — Performance Marketing Platform',
-  description: 'AI-powered performance marketing for your agency',
-}
+export const metadata = { title: 'PerfHub', description: 'Performance marketing, powered by AI' }
 
 export default function RootLayout({ children }) {
   return (
