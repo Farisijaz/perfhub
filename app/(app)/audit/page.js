@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback, Suspense } from 'react'
-import { createBrowserClient } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
 import { extractRealRows, parseGoogleAds, parseMetaAds, autoDetectPlatform } from '@/lib/csvParser'
 import { Upload, Play, FileText, X, TrendingUp, TrendingDown, Minus } from 'lucide-react'
