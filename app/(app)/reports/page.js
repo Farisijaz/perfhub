@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@/lib/supabase'
+import { createBrowserClient } from '@/lib/supabase-browser'
 import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
@@ -85,7 +85,12 @@ export default function ReportsPage() {
           )}
 
           <div className="grid grid-cols-4 gap-3 mb-4">
-            {[['Audits run', audits.length, `${audits.filter(a=>a.platform==='google').length} Google · ${audits.filter(a=>a.platform==='meta').length} Meta`],['Strategies', strategies.length, strategies[0]?.title?.slice(0,30)||'None yet'],['Competitors', competitors.length, 'tracked'],['Last audit', audits[0] ? new Date(audits[0].created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—', audits[0]?.platform||'']].map(([l,v,s]) => (
+            {[
+              ['Audits run', audits.length, `${audits.filter(a=>a.platform==='google').length} Google · ${audits.filter(a=>a.platform==='meta').length} Meta`],
+              ['Strategies', strategies.length, strategies[0]?.title?.slice(0,30)||'None yet'],
+              ['Competitors', competitors.length, 'tracked'],
+              ['Last audit', audits[0] ? new Date(audits[0].created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—', audits[0]?.platform||'']
+            ].map(([l,v,s]) => (
               <div key={l} className="card p-4"><p className="text-xs text-gray-400 mb-1">{l}</p><p className="text-2xl font-medium text-gray-900">{v}</p><p className="text-xs text-gray-400 mt-1 truncate">{s}</p></div>
             ))}
           </div>
@@ -103,8 +108,8 @@ export default function ReportsPage() {
               <div className="card p-4"><p className="text-xs font-medium text-gray-500 mb-3">ROAS trend</p>
                 <ResponsiveContainer width="100%" height={180}><LineChart data={roasData}><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/><XAxis dataKey="date" tick={{fontSize:10,fill:'#9ca3af'}}/><YAxis tick={{fontSize:10,fill:'#9ca3af'}} tickFormatter={v=>v+'x'}/><Tooltip formatter={v=>[v+'x','ROAS']}/><Line type="monotone" dataKey="roas" stroke="#1a1a2e" strokeWidth={2} dot={{r:3}}/></LineChart></ResponsiveContainer>
               </div>
-              <div className="card p-4"><p className="text-xs font-medium text-gray-500 mb-3">CPA trend</p>
-                <ResponsiveContainer width="100%" height={180}><LineChart data={roasData}><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/><XAxis dataKey="date" tick={{fontSize:10,fill:'#9ca3af'}}/><YAxis tick={{fontSize:10,fill:'#9ca3af'}} tickFormatter={v=>'$'+v}/><Tooltip formatter={v=>['$'+v,'CPA']}/><Line type="monotone" dataKey="cpa" stroke="#e8c97e" strokeWidth={2} dot={{r:3}}/></LineChart></ResponsiveContainer>
+              <div className="card p-4"><p className="text-xs font-medium text-gray-500 mb-3">CPA trend (AED)</p>
+                <ResponsiveContainer width="100%" height={180}><LineChart data={roasData}><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/><XAxis dataKey="date" tick={{fontSize:10,fill:'#9ca3af'}}/><YAxis tick={{fontSize:10,fill:'#9ca3af'}} tickFormatter={v=>'AED '+v}/><Tooltip formatter={v=>['AED '+v,'CPA']}/><Line type="monotone" dataKey="cpa" stroke="#e8c97e" strokeWidth={2} dot={{r:3}}/></LineChart></ResponsiveContainer>
               </div>
             </div>
           )}
@@ -126,7 +131,7 @@ export default function ReportsPage() {
           {audits.length > 0 && (
             <div className="card p-4"><p className="text-xs font-medium text-gray-500 mb-3">Audit history</p>
               <div className="space-y-2">
-                {audits.slice(0,8).map(a => <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"><div className="flex items-center gap-3"><span className={a.platform==='google'?'badge-gray':'badge-amber'}>{a.platform==='google'?'Google':'Meta'}</span><p className="text-sm text-gray-600">{a.date_range}</p></div><div className="flex items-center gap-4">{a.raw_data_json?.roas&&<span className="text-xs text-gray-500">ROAS {parseFloat(a.raw_data_json.roas).toFixed(1)}x</span>}{a.raw_data_json?.cpa&&<span className="text-xs text-gray-500">CPA ${parseFloat(a.raw_data_json.cpa).toFixed(0)}</span>}<p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p></div></div>)}
+                {audits.slice(0,8).map(a => <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"><div className="flex items-center gap-3"><span className={a.platform==='google'?'badge-gray':'badge-amber'}>{a.platform==='google'?'Google':'Meta'}</span><p className="text-sm text-gray-600">{a.date_range}</p></div><div className="flex items-center gap-4">{a.raw_data_json?.roas&&<span className="text-xs text-gray-500">ROAS {parseFloat(a.raw_data_json.roas).toFixed(1)}x</span>}{a.raw_data_json?.cpa&&<span className="text-xs text-gray-500">CPA AED {parseFloat(a.raw_data_json.cpa).toFixed(0)}</span>}<p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p></div></div>)}
               </div>
             </div>
           )}
