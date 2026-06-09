@@ -2,10 +2,19 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
-import { Play, Copy, Check, ChevronDown, ChevronUp, ExternalLink, Layout } from 'lucide-react'
+import { Play, Copy, Check, ChevronDown, ChevronUp, ExternalLink, Layout, Shield } from 'lucide-react'
 
 const AD_TYPES = ['Search ads (Google)','Responsive display ads','Meta feed ads','Meta story ads','YouTube bumper ads','LinkedIn sponsored content']
 const OBJECTIVES = ['Drive conversions','Generate leads','Increase brand awareness','Drive website traffic','Promote an offer/discount','App installs']
+
+const canvaTemplates = {
+  'Meta feed ads': 'https://www.canva.com/create/facebook-ads/',
+  'Meta story ads': 'https://www.canva.com/create/instagram-stories/',
+  'Responsive display ads': 'https://www.canva.com/create/display-ads/',
+  'YouTube bumper ads': 'https://www.canva.com/create/youtube-channel-art/',
+  'LinkedIn sponsored content': 'https://www.canva.com/create/linkedin-banners/',
+  'Search ads (Google)': null,
+}
 
 function CreativePageInner() {
   const params = useSearchParams()
@@ -23,6 +32,8 @@ function CreativePageInner() {
   const [activeTab, setActiveTab] = useState('ads')
   const [copied, setCopied] = useState('')
   const [expandedTracking, setExpandedTracking] = useState(0)
+  const [trackingPlatform, setTrackingPlatform] = useState('google')
+  const [loadingTracking, setLoadingTracking] = useState(false)
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -35,39 +46,40 @@ function CreativePageInner() {
     setTimeout(() => setCopied(''), 2000)
   }
 
+  async function generateTracking() {
+    if (!clientId) return
+    const client = clients.find(c => c.id === clientId)
+    setLoadingTracking(true); setTracking(null)
+    try {
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent: 'tracking', payload: { clientName: client.name, industry: client.industry, website: client.website, platform: trackingPlatform } })
+      })
+      const data = await res.json()
+      if (data.success) setTracking(data.tracking)
+    } catch (e) { alert('Error: ' + e.message) }
+    setLoadingTracking(false)
+  }
+
   async function generate() {
     if (!clientId) return
     const client = clients.find(c => c.id === clientId)
-    setRunning(true); setAds(null); setTracking(null)
+    setRunning(true); setAds(null)
     try {
-      const [adsRes, trackingRes] = await Promise.all([
-        fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agent: 'creative', payload: { clientName: client.name, industry: client.industry, website: client.website, adType, objective, product, usp, cta, tone } }) }),
-        fetch('/api/claude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agent: 'tracking', payload: { clientName: client.name, industry: client.industry, website: client.website, platform: adType.toLowerCase().includes('meta') ? 'meta' : 'google' } }) })
-      ])
-      const adsData = await adsRes.json()
-      const trackingData = await trackingRes.json()
+      const res = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agent: 'creative', payload: { clientName: client.name, industry: client.industry, website: client.website, adType, objective, product, usp, cta, tone } })
+      })
+      const adsData = await res.json()
       if (adsData.success) setAds(adsData.creative)
-      if (trackingData.success) setTracking(trackingData.tracking)
     } catch (e) { alert('Error: ' + e.message) }
     setRunning(false)
   }
 
-  const isMeta = adType.toLowerCase().includes('meta') || adType.toLowerCase().includes('story')
-  const isSearch = adType.toLowerCase().includes('search')
-
-  // Canva template links by ad type
-  const canvaTemplates = {
-    'Meta feed ads': 'https://www.canva.com/create/facebook-ads/',
-    'Meta story ads': 'https://www.canva.com/create/instagram-stories/',
-    'Responsive display ads': 'https://www.canva.com/create/display-ads/',
-    'YouTube bumper ads': 'https://www.canva.com/create/youtube-channel-art/',
-    'LinkedIn sponsored content': 'https://www.canva.com/create/linkedin-banners/',
-    'Search ads (Google)': null,
-  }
-
   const priorityColor = { First: 'badge-red', Second: 'badge-amber', Third: 'badge-green', Fourth: 'badge-gray' }
 
-  // Render a visual mockup of the ad based on type
   function AdMockup({ ad, adType }) {
     const client = clients.find(c => c.id === clientId)
     const headline = ad.headlines?.[0] || ad.primary_text?.slice(0,40) || 'Your headline here'
@@ -83,19 +95,14 @@ function CreativePageInner() {
           <div className="border border-gray-100 rounded-lg p-4 bg-gray-50">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-[10px] border border-green-700 text-green-700 px-1 rounded font-medium">Ad</span>
-              <span className="text-xs text-gray-500">{client?.website || 'yourwebsite.com'}</span>
+              <span className="text-xs text-gray-500">{client?.website?.replace(/https?:\/\//,'') || 'yourwebsite.com'}</span>
             </div>
-            <div className="text-blue-700 text-base font-medium leading-tight mb-1">
-              {ad.headlines?.slice(0,3).join(' | ') || headline}
-            </div>
-            <div className="text-sm text-gray-600 leading-relaxed">
-              {ad.descriptions?.slice(0,2).join(' ') || desc}
-            </div>
+            <div className="text-blue-700 text-base font-medium leading-tight mb-1">{ad.headlines?.slice(0,3).join(' | ') || headline}</div>
+            <div className="text-sm text-gray-600 leading-relaxed">{ad.descriptions?.slice(0,2).join(' ') || desc}</div>
           </div>
         </div>
       )
     }
-
     if (adType.toLowerCase().includes('story')) {
       return (
         <div className="bg-white border border-gray-200 rounded-xl p-4 mb-3">
@@ -108,8 +115,6 @@ function CreativePageInner() {
         </div>
       )
     }
-
-    // Meta feed / display default
     return (
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-3">
         <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3 flex items-center gap-1.5"><Layout size={10}/> Feed Ad Preview</p>
@@ -135,198 +140,221 @@ function CreativePageInner() {
     )
   }
 
+  const client = clients.find(c => c.id === clientId)
+
   return (
     <div className="p-6">
       <div className="flex items-start justify-between mb-6">
-        <div><h1 className="text-lg font-semibold text-gray-900">Ad creative & tracking</h1><p className="text-sm text-gray-400 mt-0.5">Agent 4 — AI ad copy, creative briefs and full tracking setup guide</p></div>
-        <button className="btn-primary" onClick={generate} disabled={running || !clientId}><Play size={13}/>{running ? 'Generating...' : 'Generate'}</button>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div><label className="block text-xs text-gray-500 mb-1.5">Client</label>
-          <select className="select" value={clientId} onChange={e => setClientId(e.target.value)}>
-            <option value="">Select client...</option>
-            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        <div><label className="block text-xs text-gray-500 mb-1.5">Ad type</label>
-          <select className="select" value={adType} onChange={e => setAdType(e.target.value)}>{AD_TYPES.map(t => <option key={t}>{t}</option>)}</select>
-        </div>
-        <div><label className="block text-xs text-gray-500 mb-1.5">Objective</label>
-          <select className="select" value={objective} onChange={e => setObjective(e.target.value)}>{OBJECTIVES.map(o => <option key={o}>{o}</option>)}</select>
-        </div>
-        <div><label className="block text-xs text-gray-500 mb-1.5">Product / service</label>
-          <input className="input" placeholder="What are you advertising?" value={product} onChange={e => setProduct(e.target.value)}/>
-        </div>
-        <div><label className="block text-xs text-gray-500 mb-1.5">Key USPs</label>
-          <input className="input" placeholder="e.g. Free delivery, 24/7 support" value={usp} onChange={e => setUsp(e.target.value)}/>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div><label className="block text-xs text-gray-500 mb-1.5">CTA</label>
-            <select className="select" value={cta} onChange={e => setCta(e.target.value)}>
-              {['Learn More','Shop Now','Get Quote','Book Now','Sign Up','Contact Us','Download','Get Started'].map(c => <option key={c}>{c}</option>)}
-            </select>
-          </div>
-          <div><label className="block text-xs text-gray-500 mb-1.5">Tone</label>
-            <select className="select" value={tone} onChange={e => setTone(e.target.value)}>
-              {['professional','friendly','urgent','luxury','playful','authoritative'].map(t => <option key={t}>{t}</option>)}
-            </select>
-          </div>
+        <div>
+          <h1 className="text-lg font-semibold text-gray-900">Ad creative & tracking</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Agent 4 — AI ad copy, creative briefs and full tracking setup guide</p>
         </div>
       </div>
 
-      {canvaTemplates[adType] && (
-        <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-purple-50 rounded-lg border border-purple-100">
-          <span className="text-xs text-purple-700 font-medium">Design this in Canva</span>
-          <a href={canvaTemplates[adType]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-purple-600 underline hover:text-purple-800"><ExternalLink size={11}/> Open Canva templates</a>
-        </div>
-      )}
+      {/* Client selector — always visible */}
+      <div className="card p-4 mb-4">
+        <label className="block text-xs text-gray-500 mb-1.5">Client</label>
+        <select className="select max-w-xs" value={clientId} onChange={e => setClientId(e.target.value)}>
+          <option value="">Select client...</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
 
-      {running && <div className="card p-4 mb-4"><div className="flex gap-1.5 items-center">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}<span className="text-xs text-gray-400 ml-2">Generating ad copy and tracking setup...</span></div></div>}
+      {/* Top-level tabs — always visible */}
+      <div className="flex gap-1 mb-6 border-b border-gray-100">
+        {[['ads','Ad creative'],['tracking','Tracking setup']].map(([tab,label]) => (
+          <button key={tab} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${activeTab===tab ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`} onClick={() => setActiveTab(tab)}>
+            {tab === 'tracking' && <Shield size={13}/>}
+            {label}
+          </button>
+        ))}
+      </div>
 
-      {(ads || tracking) && (
+      {/* AD CREATIVE TAB */}
+      {activeTab === 'ads' && (
         <>
-          <div className="flex gap-1 mb-4 border-b border-gray-100">
-            {[['ads','Ad copy (3 variants)'],['mockup','Creative mockups'],['tracking','Tracking setup']].map(([tab,label]) => (
-              <button key={tab} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab===tab ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`} onClick={() => setActiveTab(tab)}>{label}</button>
-            ))}
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div><label className="block text-xs text-gray-500 mb-1.5">Ad type</label>
+              <select className="select" value={adType} onChange={e => setAdType(e.target.value)}>{AD_TYPES.map(t => <option key={t}>{t}</option>)}</select>
+            </div>
+            <div><label className="block text-xs text-gray-500 mb-1.5">Objective</label>
+              <select className="select" value={objective} onChange={e => setObjective(e.target.value)}>{OBJECTIVES.map(o => <option key={o}>{o}</option>)}</select>
+            </div>
+            <div><label className="block text-xs text-gray-500 mb-1.5">Product / service</label>
+              <input className="input" placeholder="What are you advertising?" value={product} onChange={e => setProduct(e.target.value)}/>
+            </div>
+            <div><label className="block text-xs text-gray-500 mb-1.5">Key USPs</label>
+              <input className="input" placeholder="e.g. Free delivery, 24/7 support" value={usp} onChange={e => setUsp(e.target.value)}/>
+            </div>
+            <div><label className="block text-xs text-gray-500 mb-1.5">CTA</label>
+              <select className="select" value={cta} onChange={e => setCta(e.target.value)}>
+                {['Learn More','Shop Now','Get Quote','Book Now','Sign Up','Contact Us','Download','Get Started'].map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div><label className="block text-xs text-gray-500 mb-1.5">Tone</label>
+              <select className="select" value={tone} onChange={e => setTone(e.target.value)}>
+                {['professional','friendly','urgent','luxury','playful','authoritative'].map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
 
-          {activeTab === 'ads' && ads && (
-            <div className="space-y-4">
-              {ads.ab_test_recommendation && <div className="card p-3 bg-blue-50 border-blue-100"><p className="text-xs font-medium text-blue-700 mb-1">A/B test recommendation</p><p className="text-sm text-blue-600">{ads.ab_test_recommendation}</p></div>}
-              {(ads.ads||[]).map((ad, i) => (
-                <div key={i} className="card p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div><span className="text-sm font-medium text-gray-900">{ad.variant}</span><span className="ml-2 text-xs text-gray-400">— {ad.angle}</span></div>
-                    <button className="btn-secondary text-xs py-1" onClick={() => {
-                      const lines = [
-                        ad.headlines?.length ? 'HEADLINES:\n' + ad.headlines.join('\n') : '',
-                        ad.descriptions?.length ? '\nDESCRIPTIONS:\n' + ad.descriptions.join('\n') : '',
-                        ad.primary_text ? '\nPRIMARY TEXT:\n' + ad.primary_text : '',
-                        ad.body_copy ? '\nBODY COPY:\n' + ad.body_copy : '',
-                        ad.image_direction ? '\nCREATIVE DIRECTION:\n' + ad.image_direction : '',
-                      ].filter(Boolean).join('\n')
-                      copy(lines, `ad-${i}`)
-                    }}>{copied===`ad-${i}` ? <><Check size={11}/> Copied</> : <><Copy size={11}/> Copy all</>}</button>
-                  </div>
-                  <div className="space-y-3">
-                    {ad.headlines?.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Headlines</p>
-                        {ad.headlines.map((h,j) => (
-                          <div key={j} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 mb-1">
-                            <span className="text-sm text-gray-700">{h}</span>
-                            <div className="flex items-center gap-2 shrink-0 ml-2">
-                              <span className={`text-[10px] ${h.length>30?'text-red-500':'text-gray-400'}`}>{h.length}/30</span>
-                              <button onClick={()=>copy(h,`h-${i}-${j}`)} className="text-gray-300 hover:text-gray-500">{copied===`h-${i}-${j}`?<Check size={11}/>:<Copy size={11}/>}</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {ad.descriptions?.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Descriptions</p>
-                        {ad.descriptions.map((d,j) => (
-                          <div key={j} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 mb-1">
-                            <span className="text-sm text-gray-700">{d}</span>
-                            <div className="flex items-center gap-2 shrink-0 ml-2">
-                              <span className={`text-[10px] ${d.length>90?'text-red-500':'text-gray-400'}`}>{d.length}/90</span>
-                              <button onClick={()=>copy(d,`d-${i}-${j}`)} className="text-gray-300 hover:text-gray-500">{copied===`d-${i}-${j}`?<Check size={11}/>:<Copy size={11}/>}</button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {ad.primary_text && (
-                      <div>
-                        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Primary text</p>
-                        <div className="flex items-start justify-between bg-gray-50 rounded px-3 py-2">
-                          <span className="text-sm text-gray-700 flex-1 mr-2">{ad.primary_text}</span>
-                          <button onClick={()=>copy(ad.primary_text,`pt-${i}`)} className="text-gray-300 hover:text-gray-500 shrink-0 mt-0.5">{copied===`pt-${i}`?<Check size={11}/>:<Copy size={11}/>}</button>
-                        </div>
-                      </div>
-                    )}
-                    {ad.body_copy && (
-                      <div>
-                        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Body copy</p>
-                        <div className="flex items-start justify-between bg-gray-50 rounded px-3 py-2">
-                          <span className="text-sm text-gray-700 flex-1 mr-2">{ad.body_copy}</span>
-                          <button onClick={()=>copy(ad.body_copy,`bc-${i}`)} className="text-gray-300 hover:text-gray-500 shrink-0 mt-0.5">{copied===`bc-${i}`?<Check size={11}/>:<Copy size={11}/>}</button>
-                        </div>
-                      </div>
-                    )}
-                    {ad.image_direction && (
-                      <div>
-                        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Creative direction</p>
-                        <p className="text-sm text-gray-500 italic bg-amber-50 px-3 py-2 rounded border-l-2 border-amber-200">{ad.image_direction}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {ads.creative_notes && <div className="card p-3 bg-gray-50"><p className="text-xs font-medium text-gray-500 mb-1">Notes for design team</p><p className="text-sm text-gray-600">{ads.creative_notes}</p></div>}
+          {canvaTemplates[adType] && (
+            <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-purple-50 rounded-lg border border-purple-100">
+              <span className="text-xs text-purple-700 font-medium">Design this in Canva</span>
+              <a href={canvaTemplates[adType]} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-purple-600 underline hover:text-purple-800"><ExternalLink size={11}/> Open Canva templates</a>
             </div>
           )}
 
-          {activeTab === 'mockup' && ads && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-gray-500">Visual previews of each ad variant. Use these as a reference when designing in Canva.</p>
-                {canvaTemplates[adType] && (
-                  <a href={canvaTemplates[adType]} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs flex items-center gap-1"><ExternalLink size={11}/> Open Canva</a>
-                )}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {(ads.ads||[]).map((ad, i) => (
-                  <div key={i}>
-                    <p className="text-xs font-medium text-gray-500 mb-2">{ad.variant} — {ad.angle}</p>
-                    <AdMockup ad={ad} adType={adType}/>
-                  </div>
+          <div className="flex justify-end mb-4">
+            <button className="btn-primary" onClick={generate} disabled={running || !clientId}><Play size={13}/>{running ? 'Generating...' : 'Generate ads'}</button>
+          </div>
+
+          {running && <div className="card p-4 mb-4"><div className="flex gap-1.5 items-center">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}<span className="text-xs text-gray-400 ml-2">Generating ad copy...</span></div></div>}
+
+          {ads && (
+            <>
+              <div className="flex gap-1 mb-4 border-b border-gray-100">
+                {[['copy','Ad copy (3 variants)'],['mockup','Creative mockups']].map(([tab,label]) => (
+                  <button key={tab} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab===tab ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`} onClick={() => setActiveTab(tab)}>{label}</button>
                 ))}
               </div>
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="text-xs text-gray-500"><strong>How to use:</strong> Copy the ad copy from the "Ad copy" tab → paste into your Canva design → use the creative direction as a guide for visuals. {canvaTemplates[adType] ? 'Click "Open Canva" to start with a matching template.' : ''}</p>
+
+              {activeTab === 'copy' && (
+                <div className="space-y-4">
+                  {ads.ab_test_recommendation && <div className="card p-3 bg-blue-50 border-blue-100"><p className="text-xs font-medium text-blue-700 mb-1">A/B test recommendation</p><p className="text-sm text-blue-600">{ads.ab_test_recommendation}</p></div>}
+                  {(ads.ads||[]).map((ad, i) => (
+                    <div key={i} className="card p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div><span className="text-sm font-medium text-gray-900">{ad.variant}</span><span className="ml-2 text-xs text-gray-400">— {ad.angle}</span></div>
+                        <button className="btn-secondary text-xs py-1" onClick={() => {
+                          const lines = [ad.headlines?.length?'HEADLINES:\n'+ad.headlines.join('\n'):'',ad.descriptions?.length?'\nDESCRIPTIONS:\n'+ad.descriptions.join('\n'):'',ad.primary_text?'\nPRIMARY TEXT:\n'+ad.primary_text:'',ad.body_copy?'\nBODY COPY:\n'+ad.body_copy:'',ad.image_direction?'\nCREATIVE DIRECTION:\n'+ad.image_direction:''].filter(Boolean).join('\n')
+                          copy(lines, `ad-${i}`)
+                        }}>{copied===`ad-${i}` ? <><Check size={11}/> Copied</> : <><Copy size={11}/> Copy all</>}</button>
+                      </div>
+                      <div className="space-y-3">
+                        {ad.headlines?.length > 0 && (
+                          <div><p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Headlines</p>
+                            {ad.headlines.map((h,j) => <div key={j} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 mb-1"><span className="text-sm text-gray-700">{h}</span><div className="flex items-center gap-2 shrink-0 ml-2"><span className={`text-[10px] ${h.length>30?'text-red-500':'text-gray-400'}`}>{h.length}/30</span><button onClick={()=>copy(h,`h-${i}-${j}`)} className="text-gray-300 hover:text-gray-500">{copied===`h-${i}-${j}`?<Check size={11}/>:<Copy size={11}/>}</button></div></div>)}
+                          </div>
+                        )}
+                        {ad.descriptions?.length > 0 && (
+                          <div><p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Descriptions</p>
+                            {ad.descriptions.map((d,j) => <div key={j} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 mb-1"><span className="text-sm text-gray-700">{d}</span><div className="flex items-center gap-2 shrink-0 ml-2"><span className={`text-[10px] ${d.length>90?'text-red-500':'text-gray-400'}`}>{d.length}/90</span><button onClick={()=>copy(d,`d-${i}-${j}`)} className="text-gray-300 hover:text-gray-500">{copied===`d-${i}-${j}`?<Check size={11}/>:<Copy size={11}/>}</button></div></div>)}
+                          </div>
+                        )}
+                        {ad.primary_text && <div><p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Primary text</p><div className="flex items-start justify-between bg-gray-50 rounded px-3 py-2"><span className="text-sm text-gray-700 flex-1 mr-2">{ad.primary_text}</span><button onClick={()=>copy(ad.primary_text,`pt-${i}`)} className="text-gray-300 hover:text-gray-500 shrink-0 mt-0.5">{copied===`pt-${i}`?<Check size={11}/>:<Copy size={11}/>}</button></div></div>}
+                        {ad.body_copy && <div><p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Body copy</p><div className="flex items-start justify-between bg-gray-50 rounded px-3 py-2"><span className="text-sm text-gray-700 flex-1 mr-2">{ad.body_copy}</span><button onClick={()=>copy(ad.body_copy,`bc-${i}`)} className="text-gray-300 hover:text-gray-500 shrink-0 mt-0.5">{copied===`bc-${i}`?<Check size={11}/>:<Copy size={11}/>}</button></div></div>}
+                        {ad.image_direction && <div><p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Creative direction</p><p className="text-sm text-gray-500 italic bg-amber-50 px-3 py-2 rounded border-l-2 border-amber-200">{ad.image_direction}</p></div>}
+                      </div>
+                    </div>
+                  ))}
+                  {ads.creative_notes && <div className="card p-3 bg-gray-50"><p className="text-xs font-medium text-gray-500 mb-1">Notes for design team</p><p className="text-sm text-gray-600">{ads.creative_notes}</p></div>}
+                </div>
+              )}
+
+              {activeTab === 'mockup' && (
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm text-gray-500">Visual previews of each ad variant. Use as reference when designing in Canva.</p>
+                    {canvaTemplates[adType] && <a href={canvaTemplates[adType]} target="_blank" rel="noopener noreferrer" className="btn-secondary text-xs flex items-center gap-1"><ExternalLink size={11}/> Open Canva</a>}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {(ads.ads||[]).map((ad, i) => <div key={i}><p className="text-xs font-medium text-gray-500 mb-2">{ad.variant} — {ad.angle}</p><AdMockup ad={ad} adType={adType}/></div>)}
+                  </div>
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-100"><p className="text-xs text-gray-500"><strong>How to use:</strong> Copy the ad copy from the "Ad copy" tab → paste into your Canva design → use the creative direction as a guide for visuals.</p></div>
+                </div>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {/* TRACKING SETUP TAB */}
+      {activeTab === 'tracking' && (
+        <div>
+          <div className="card p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-900 mb-1">Generate tracking setup guide</p>
+                <p className="text-xs text-gray-400">Full step-by-step guide for GTM, GA4, conversion tracking and pixel setup{client ? ` for ${client.name}` : ''}.</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Platform focus</label>
+                  <div className="flex gap-2">
+                    {['google','meta','both'].map(p => <button key={p} onClick={() => setTrackingPlatform(p)} className={`px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors capitalize ${trackingPlatform===p ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}>{p === 'both' ? 'Both' : p === 'google' ? 'Google' : 'Meta'}</button>)}
+                  </div>
+                </div>
+                <button className="btn-primary mt-4" onClick={generateTracking} disabled={loadingTracking || !clientId}><Shield size={13}/>{loadingTracking ? 'Generating...' : 'Generate guide'}</button>
               </div>
             </div>
-          )}
+          </div>
 
-          {activeTab === 'tracking' && tracking && (
+          {!clientId && <div className="card p-8 text-center"><p className="text-sm text-gray-400">Select a client above to generate their tracking setup guide</p></div>}
+
+          {loadingTracking && <div className="card p-4"><div className="flex gap-1.5 items-center">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}<span className="text-xs text-gray-400 ml-2">Building tracking guide...</span></div></div>}
+
+          {tracking && (
             <div className="space-y-3">
+              {/* Key events */}
               {tracking.key_events_to_track?.length > 0 && (
-                <div className="card p-4 mb-2">
+                <div className="card p-4">
                   <p className="text-xs font-medium text-gray-500 mb-2">Key events to track</p>
                   <div className="flex flex-wrap gap-2">{tracking.key_events_to_track.map((e,i) => <span key={i} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded font-mono">{e}</span>)}</div>
                 </div>
               )}
+
+              {/* GTM tags needed */}
+              {tracking.gtm_tags_needed?.length > 0 && (
+                <div className="card p-4">
+                  <p className="text-xs font-medium text-gray-500 mb-2">GTM tags needed</p>
+                  <div className="flex flex-wrap gap-2">{tracking.gtm_tags_needed.map((t,i) => <span key={i} className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded">{t}</span>)}</div>
+                </div>
+              )}
+
+              {/* Setup steps */}
               {(tracking.tracking_setup||[]).map((platform, i) => (
                 <div key={i} className="card overflow-hidden">
                   <button className="w-full flex items-center justify-between p-4" onClick={() => setExpandedTracking(expandedTracking === i ? null : i)}>
-                    <div className="flex items-center gap-3"><span className={priorityColor[platform.priority]||'badge-gray'}>{platform.priority}</span><p className="text-sm font-medium text-gray-900">{platform.platform}</p></div>
+                    <div className="flex items-center gap-3">
+                      <span className={priorityColor[platform.priority]||'badge-gray'}>{platform.priority}</span>
+                      <p className="text-sm font-medium text-gray-900">{platform.platform}</p>
+                    </div>
                     {expandedTracking === i ? <ChevronUp size={14} className="text-gray-400"/> : <ChevronDown size={14} className="text-gray-400"/>}
                   </button>
                   {expandedTracking === i && (
-                    <div className="border-t border-gray-50 p-4 space-y-3">
+                    <div className="border-t border-gray-50 p-4 space-y-4">
                       {(platform.steps||[]).map((s,j) => (
                         <div key={j} className="flex gap-3">
                           <div className="w-6 h-6 rounded-full bg-gray-900 text-white text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">{s.step}</div>
-                          <div><p className="text-sm font-medium text-gray-900 mb-0.5">{s.action}</p><p className="text-xs text-gray-500 leading-relaxed">{s.detail}</p></div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 mb-0.5">{s.action}</p>
+                            <p className="text-xs text-gray-500 leading-relaxed">{s.detail}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
               ))}
+
+              {/* Verification checklist */}
               {tracking.verification_checklist?.length > 0 && (
                 <div className="card p-4">
                   <p className="text-xs font-medium text-gray-500 mb-3">Verification checklist</p>
-                  <div className="space-y-2">{tracking.verification_checklist.map((item,i) => <div key={i} className="flex items-start gap-2"><div className="w-4 h-4 border border-gray-300 rounded mt-0.5 shrink-0"></div><p className="text-sm text-gray-700">{item}</p></div>)}</div>
+                  <div className="space-y-2">
+                    {tracking.verification_checklist.map((item,i) => (
+                      <div key={i} className="flex items-start gap-2">
+                        <div className="w-4 h-4 border border-gray-300 rounded mt-0.5 shrink-0"></div>
+                        <p className="text-sm text-gray-700">{item}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   )

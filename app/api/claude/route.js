@@ -10,19 +10,20 @@ export async function POST(request) {
       case 'audit': {
         const { clientName, industry, platform, dateRange, metrics } = payload
         const benchmarks = {
-          'F&B / Restaurant':     { roas: 3.5, cpa: 25,  cpc: 1.2, cpm: 8  },
-          'E-commerce':           { roas: 4.0, cpa: 30,  cpc: 1.5, cpm: 10 },
-          'Real Estate':          { roas: 2.5, cpa: 80,  cpc: 3.5, cpm: 15 },
-          'Healthcare':           { roas: 3.0, cpa: 50,  cpc: 2.8, cpm: 12 },
-          'Education':            { roas: 2.8, cpa: 45,  cpc: 2.2, cpm: 11 },
-          'Automotive':           { roas: 3.2, cpa: 60,  cpc: 2.5, cpm: 13 },
-          'Finance':              { roas: 2.8, cpa: 55,  cpc: 3.8, cpm: 14 },
-          'Retail':               { roas: 4.0, cpa: 28,  cpc: 1.4, cpm: 9  },
-          'Travel & Hospitality': { roas: 3.8, cpa: 40,  cpc: 1.8, cpm: 11 },
-          'Technology':           { roas: 3.0, cpa: 60,  cpc: 3.2, cpm: 13 },
-          'Fashion':              { roas: 4.2, cpa: 25,  cpc: 1.3, cpm: 9  },
+          'F&B / Restaurant':     { roas: 3.5, cpa: 35,  cpc: 1.2, cpm: 8  },
+          'E-commerce':           { roas: 4.0, cpa: 200, cpc: 1.5, cpm: 10 },
+          'Real Estate':          { roas: 2.5, cpa: 800, cpc: 3.5, cpm: 15 },
+          'Healthcare':           { roas: 3.0, cpa: 120, cpc: 2.8, cpm: 12 },
+          'Education':            { roas: 2.8, cpa: 150, cpc: 2.2, cpm: 11 },
+          'Automotive':           { roas: 3.2, cpa: 600, cpc: 2.5, cpm: 13 },
+          'Finance':              { roas: 2.8, cpa: 200, cpc: 3.8, cpm: 14 },
+          'Retail':               { roas: 4.0, cpa: 120, cpc: 1.4, cpm: 9  },
+          'Travel & Hospitality': { roas: 3.8, cpa: 250, cpc: 1.8, cpm: 11 },
+          'Technology':           { roas: 3.0, cpa: 180, cpc: 3.2, cpm: 13 },
+          'Fashion':              { roas: 4.2, cpa: 180, cpc: 1.3, cpm: 9  },
+          'Beauty & Wellness':    { roas: 4.0, cpa: 150, cpc: 1.4, cpm: 9  },
         }
-        const b = benchmarks[industry] || { roas: 3.5, cpa: 35, cpc: 2.0, cpm: 10 }
+        const b = benchmarks[industry] || { roas: 3.5, cpa: 150, cpc: 2.0, cpm: 10 }
         const metricsText = metrics
           ? `Spend: AED ${metrics.totals.spend.toFixed(2)} | Clicks: ${metrics.totals.clicks} | Impressions: ${metrics.totals.impressions.toLocaleString()} | Conversions: ${metrics.totals.conversions} | ROAS: ${metrics.roas.toFixed(2)}x | CPC: AED ${metrics.cpc.toFixed(2)} | CPM: AED ${metrics.cpm.toFixed(2)} | CPA: AED ${metrics.cpa.toFixed(2)} | CTR: ${metrics.ctr.toFixed(2)}% | Conv rate: ${metrics.convRate.toFixed(2)}%${metrics.frequency ? ` | Frequency: ${metrics.frequency.toFixed(1)}` : ''}`
           : 'No CSV uploaded — provide general best-practice audit recommendations.'
@@ -82,53 +83,75 @@ Respond with ONLY this JSON, no markdown, no backticks:
       }
 
       case 'strategy': {
-        const { clientName, industry, goal, budget, duration, channels } = payload
+        const { clientName, industry, goal, budget, duration, channels, currentRoas } = payload
+        const hasTrackingIssue = currentRoas === 0 || currentRoas === '0' || currentRoas === '0.00'
         const text = await callClaude({
-          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency in Dubai. Create comprehensive, data-driven marketing strategies for UAE/Middle East clients. Always respond with valid JSON only, no markdown, no backticks.`,
-          userPrompt: `Create a performance marketing strategy for ${clientName} (${industry}).
+          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency in Dubai. Create comprehensive, highly actionable strategies for UAE/Middle East clients. Include specific keywords, bid strategies, budget splits, and timelines. Always respond with valid JSON only, no markdown, no backticks.`,
+          userPrompt: `Create a detailed performance marketing strategy for ${clientName} (${industry}).
 Goal: ${goal} | Budget: AED ${budget}/month | Duration: ${duration} | Channels: ${channels.join(', ')} | Market: UAE
+${hasTrackingIssue ? 'IMPORTANT: Conversion value tracking appears broken (ROAS showing 0). Include tracking fix as the highest priority action.' : ''}
 
 Respond with ONLY this JSON, no markdown:
 {
-  "executive_summary": "3-4 sentence overview",
-  "market_opportunity": "2-3 sentences on UAE market opportunity",
+  "executive_summary": "3-4 sentence overview including budget allocation approach and expected outcome",
+  "market_opportunity": "2-3 sentences on UAE market opportunity specific to this industry",
+  "tracking_alert": ${hasTrackingIssue ? '"CRITICAL: Conversion value tracking is not configured. Fix this before scaling spend or ROAS cannot be measured."' : 'null'},
   "target_audience": {
-    "primary": "description",
+    "primary": "detailed description with age, gender, location, income level",
     "secondary": "description",
-    "demographics": "age, gender, income",
-    "interests": ["interest1", "interest2", "interest3"]
+    "demographics": "age range, gender split, income level, location",
+    "interests": ["interest1", "interest2", "interest3", "interest4", "interest5"]
   },
   "channel_strategy": [
     {
-      "channel": "Google Search",
-      "role": "conversion",
+      "channel": "channel name",
+      "role": "conversion or awareness or consideration or retention",
       "budget_percentage": 40,
       "monthly_budget": 4000,
-      "rationale": "why this channel",
+      "rationale": "specific reason this channel fits this client and goal",
+      "bid_strategy": "e.g. Target ROAS at 4x, or Maximize Conversions with Target CPA AED 30",
+      "campaign_types": ["e.g. Branded Search", "Non-brand Search", "Shopping/PMax"],
+      "budget_split": [
+        {"campaign_type": "Branded Search", "budget_aed": 1500, "percentage": 15, "rationale": "why"},
+        {"campaign_type": "Shopping/PMax", "budget_aed": 5000, "percentage": 50, "rationale": "why"},
+        {"campaign_type": "Non-brand Search", "budget_aed": 3500, "percentage": 35, "rationale": "why"}
+      ],
       "kpis": ["ROAS 4x", "CPA AED 30"],
       "benchmarks": { "cpc": "AED 1.50", "cpm": "AED 8", "ctr": "3%", "cpa": "AED 30", "roas": "4x" }
     }
   ],
+  "keyword_strategy": {
+    "branded_keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7", "keyword8", "keyword9", "keyword10", "keyword11", "keyword12", "keyword13", "keyword14", "keyword15"],
+    "non_brand_keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6", "keyword7", "keyword8", "keyword9", "keyword10", "keyword11", "keyword12", "keyword13", "keyword14", "keyword15"],
+    "account_level_negatives": ["negative1", "negative2", "negative3", "negative4", "negative5", "negative6", "negative7", "negative8", "negative9", "negative10", "negative11", "negative12", "negative13", "negative14", "negative15"],
+    "campaign_level_negatives": ["negative1", "negative2", "negative3", "negative4", "negative5", "negative6", "negative7", "negative8", "negative9", "negative10", "negative11", "negative12", "negative13", "negative14", "negative15"]
+  },
   "creative_direction": {
     "messaging_pillars": ["pillar1", "pillar2", "pillar3"],
-    "tone": "brand tone",
-    "formats": ["format1", "format2"]
+    "tone": "brand tone description",
+    "formats": ["format1", "format2", "format3"]
   },
   "media_plan": {
-    "month1": "focus and tactics",
-    "month2": "focus and tactics",
-    "month3": "focus and tactics"
+    "month1": "Week 1-2: specific setup tasks. Week 3-4: specific launch tasks.",
+    "month2": "focus and optimization tactics",
+    "month3": "scaling tactics and what to measure"
   },
   "expected_kpis": {
-    "monthly_impressions": "500,000 - 700,000",
-    "monthly_clicks": "15,000 - 20,000",
-    "monthly_conversions": "300 - 450",
-    "expected_roas": "3.8x",
-    "expected_cpa": "AED 28",
-    "expected_cpl": "AED 22"
+    "monthly_impressions": "range",
+    "monthly_clicks": "range",
+    "monthly_conversions": "range",
+    "expected_roas": "Xx",
+    "expected_cpa": "AED X",
+    "expected_cpl": "AED X or N/A"
   },
-  "quick_wins": ["win1", "win2", "win3"],
-  "risks": ["risk1", "risk2"]
+  "quick_wins": [
+    {"action": "action description", "timeline": "Week 1", "expected_impact": "specific expected result"},
+    {"action": "action description", "timeline": "Week 1", "expected_impact": "specific expected result"},
+    {"action": "action description", "timeline": "Week 2", "expected_impact": "specific expected result"},
+    {"action": "action description", "timeline": "Week 2", "expected_impact": "specific expected result"},
+    {"action": "action description", "timeline": "Week 3-4", "expected_impact": "specific expected result"}
+  ],
+  "risks": ["risk1 with mitigation", "risk2 with mitigation"]
 }`
         })
         const strategy = safeJSON(text)
@@ -141,17 +164,25 @@ Respond with ONLY this JSON, no markdown:
         const text = await callClaude({
           systemPrompt: `You are a world-class performance marketing copywriter. You write high-converting ads for Dubai and UAE markets. Always respond with valid JSON only, no markdown, no backticks, no extra text.`,
           userPrompt: `Write ${adType} for ${clientName} (${industry}).
-Objective: ${objective} | Product: ${product} | USPs: ${usp || 'quality and reliability'} | CTA: ${cta} | Tone: ${tone} | Market: UAE/Dubai
+Objective: ${objective} | Product: ${product || 'main product/service'} | USPs: ${usp || 'quality and reliability'} | CTA: ${cta} | Tone: ${tone} | Market: UAE/Dubai
 
-Respond with ONLY this JSON:
+STRICT CHARACTER LIMITS — count every character including spaces:
+- Each headline: MAXIMUM 30 characters. Count carefully. If in doubt, make it shorter.
+- Each description: MAXIMUM 90 characters. Count carefully. Never exceed 90.
+- Primary text (Meta): MAXIMUM 125 characters.
+
+For Search/RSA ads: provide exactly 15 headlines and exactly 5 descriptions per variant.
+For Meta/Display ads: provide 5 headlines and 5 descriptions plus primary_text and body_copy.
+
+Respond with ONLY this JSON, no markdown:
 {
   "ads": [
     {
       "variant": "Variant A",
-      "angle": "the hook",
-      "headlines": ["headline1 max 30 chars", "headline2 max 30 chars", "headline3 max 30 chars"],
-      "descriptions": ["description1 max 90 chars", "description2 max 90 chars"],
-      "primary_text": "meta primary text max 125 chars",
+      "angle": "angle name",
+      "headlines": ["h1 under 30", "h2 under 30", "h3 under 30", "h4 under 30", "h5 under 30", "h6 under 30", "h7 under 30", "h8 under 30", "h9 under 30", "h10 under 30", "h11 under 30", "h12 under 30", "h13 under 30", "h14 under 30", "h15 under 30"],
+      "descriptions": ["desc1 under 90 chars total", "desc2 under 90 chars total", "desc3 under 90 chars total", "desc4 under 90 chars total", "desc5 under 90 chars total"],
+      "primary_text": "under 125 chars for meta",
       "body_copy": "2-3 sentence body copy",
       "cta": "${cta}",
       "image_direction": "visual brief for designer"
@@ -159,9 +190,9 @@ Respond with ONLY this JSON:
     {
       "variant": "Variant B",
       "angle": "different angle",
-      "headlines": ["headline1", "headline2", "headline3"],
-      "descriptions": ["description1", "description2"],
-      "primary_text": "primary text",
+      "headlines": ["h1","h2","h3","h4","h5","h6","h7","h8","h9","h10","h11","h12","h13","h14","h15"],
+      "descriptions": ["desc1","desc2","desc3","desc4","desc5"],
+      "primary_text": "primary text under 125",
       "body_copy": "body copy",
       "cta": "${cta}",
       "image_direction": "visual brief"
@@ -169,15 +200,15 @@ Respond with ONLY this JSON:
     {
       "variant": "Variant C",
       "angle": "third angle",
-      "headlines": ["headline1", "headline2", "headline3"],
-      "descriptions": ["description1", "description2"],
-      "primary_text": "primary text",
+      "headlines": ["h1","h2","h3","h4","h5","h6","h7","h8","h9","h10","h11","h12","h13","h14","h15"],
+      "descriptions": ["desc1","desc2","desc3","desc4","desc5"],
+      "primary_text": "primary text under 125",
       "body_copy": "body copy",
       "cta": "${cta}",
       "image_direction": "visual brief"
     }
   ],
-  "ab_test_recommendation": "which to test first and why",
+  "ab_test_recommendation": "which variant to test first and why",
   "creative_notes": "notes for design team"
 }`
         })
@@ -187,11 +218,11 @@ Respond with ONLY this JSON:
       }
 
       case 'tracking': {
-        const { clientName, industry, platform } = payload
+        const { clientName, industry, platform, website } = payload
         const text = await callClaude({
           systemPrompt: `You are a digital marketing tracking specialist. Provide clear step-by-step guides for GTM, GA4, Meta Pixel, and CAPI. Write for a non-technical marketing manager. Always respond with valid JSON only, no markdown, no backticks.`,
           userPrompt: `Create a complete tracking setup guide for ${clientName} (${industry}).
-Platform focus: ${platform} | Market: UAE
+Platform focus: ${platform} | Website: ${website || 'not provided'} | Market: UAE
 
 Respond with ONLY this JSON:
 {
@@ -222,13 +253,14 @@ Respond with ONLY this JSON:
       "platform": "Google Ads Conversion Tracking",
       "priority": "Fourth",
       "steps": [
-        {"step": 1, "action": "Create conversion action", "detail": "In Google Ads, click Tools and Settings, then Conversions, click the blue plus button, select Website"}
+        {"step": 1, "action": "Create conversion action", "detail": "In Google Ads, click Tools and Settings, then Conversions, click the blue plus button, select Website"},
+        {"step": 2, "action": "Set conversion value", "detail": "Select Use different values for each conversion, set the default value to your average order value in AED. This is critical for ROAS tracking."}
       ]
     }
   ],
-  "key_events_to_track": ["purchase", "lead", "page_view", "add_to_cart", "contact_form_submit"],
-  "gtm_tags_needed": ["GA4 Configuration Tag", "Meta Pixel Base Code", "Google Ads Conversion Tracking", "GA4 Event Tags"],
-  "verification_checklist": ["GTM Preview mode shows all tags firing on key pages", "GA4 DebugView shows events in real time", "Meta Pixel Helper Chrome extension shows pixel active", "Google Tag Assistant confirms Google Ads tag is working", "Test purchase or lead form submission appears in all platforms"]
+  "key_events_to_track": ["purchase", "lead", "page_view", "add_to_cart", "begin_checkout", "contact_form_submit", "phone_call_click"],
+  "gtm_tags_needed": ["GA4 Configuration Tag", "Meta Pixel Base Code", "Google Ads Conversion Tracking", "GA4 Event Tags", "Purchase Event with Revenue Value"],
+  "verification_checklist": ["GTM Preview mode shows all tags firing on key pages", "GA4 DebugView shows events in real time", "Meta Pixel Helper Chrome extension shows pixel active", "Google Tag Assistant confirms Google Ads tag is working", "Test purchase shows conversion value in Google Ads within 3 hours", "ROAS is no longer showing 0.00x in Google Ads dashboard"]
 }`
         })
         const tracking = safeJSON(text)
@@ -265,7 +297,8 @@ Be direct. Write like a trusted advisor giving a weekly briefing. No formatting,
 function buildAuditRecos(data, b, platform, industry) {
   if (!data) return [{ title: 'Upload a CSV for personalised recommendations', desc: 'Export from your ad platform and upload above.', impact: 'High' }]
   const r = []
-  if (data.roas < b.roas) r.push({ title: 'ROAS below benchmark — restructure bid strategy', desc: `ROAS of ${data.roas.toFixed(1)}x is below the ${b.roas}x benchmark. Switch to Target ROAS bidding at ${(b.roas * 0.9).toFixed(1)}x. Expected: +20-35% ROAS in 4 weeks.`, impact: 'High' })
+  if (data.roas === 0) r.push({ title: 'Conversion value tracking is broken — fix immediately', desc: 'ROAS is showing 0.00x because Google Ads is not receiving purchase values. Go to Tools → Conversions → your purchase action → set value to your average order value in AED. Without this, Smart Bidding cannot optimise properly.', impact: 'High' })
+  else if (data.roas < b.roas) r.push({ title: 'ROAS below benchmark — restructure bid strategy', desc: `ROAS of ${data.roas.toFixed(1)}x is below the ${b.roas}x benchmark. Switch to Target ROAS bidding at ${(b.roas * 0.9).toFixed(1)}x. Expected: +20-35% ROAS in 4 weeks.`, impact: 'High' })
   if (data.cpa > b.cpa) r.push({ title: 'CPA above target — align landing pages to ad copy', desc: `CPA of AED ${data.cpa.toFixed(0)} exceeds the AED ${b.cpa} target. A/B test landing page headlines. Expected: 15-25% CPA reduction.`, impact: 'High' })
   if (data.ctr < 2) r.push({ title: 'Low CTR — test new headlines and creative formats', desc: `CTR of ${data.ctr.toFixed(2)}% is below the 3.1% average. Test video formats which drive 20-30% higher CTR.`, impact: 'Medium' })
   if (platform === 'meta' && data.frequency > 3) r.push({ title: 'Ad fatigue — refresh creatives urgently', desc: `Frequency of ${data.frequency.toFixed(1)} exceeds the 3.0 optimal ceiling. Introduce 4-6 new variants immediately.`, impact: 'High' })

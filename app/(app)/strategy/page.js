@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
-import { Play, Download, ChevronDown, ChevronUp, Info } from 'lucide-react'
+import { Play, Download, ChevronDown, ChevronUp, Info, AlertTriangle } from 'lucide-react'
 
 const CHANNELS = ['Google Search','Google Display','Google Shopping','YouTube','Meta (Facebook/Instagram)','TikTok','LinkedIn','Snapchat','SEO','Email Marketing']
 const GOALS = ['increase conversions','increase ROAS','reduce CPA','grow brand awareness','increase leads','drive app installs','increase e-commerce revenue']
@@ -20,6 +20,7 @@ function StrategyPageInner() {
   const [expanded, setExpanded] = useState('channels')
   const [pastStrategies, setPastStrategies] = useState([])
   const [dataSources, setDataSources] = useState([])
+  const [latestRoas, setLatestRoas] = useState(null)
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -33,12 +34,15 @@ function StrategyPageInner() {
     const supabase = createBrowserClient()
     Promise.all([
       supabase.from('strategies').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(5),
-      supabase.from('audits').select('id,platform,created_at').eq('client_id', clientId).limit(1),
+      supabase.from('audits').select('id,platform,created_at,raw_data_json').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1),
       supabase.from('competitor_analyses').select('id').eq('client_id', clientId).limit(1),
     ]).then(([{ data: s }, { data: a }, { data: c }]) => {
       setPastStrategies(s || [])
       const sources = ['Industry benchmarks (UAE/GCC market)']
-      if (a?.length) sources.push('Your past audit data')
+      if (a?.length) {
+        sources.push('Your past audit data')
+        setLatestRoas(a[0]?.raw_data_json?.roas ?? null)
+      }
       if (c?.length) sources.push('Competitor analysis')
       setDataSources(sources)
     })
@@ -48,21 +52,70 @@ function StrategyPageInner() {
     const client = clients.find(c => c.id === clientId)
     if (!strategy || !client) return
     const win = window.open('', '_blank')
-    const channelSlides = (strategy.channel_strategy || []).map(ch => `
+
+    const channelSlides = (strategy.channel_strategy || []).map(ch => {
+      const budgetSplitHtml = ch.budget_split?.length ? `
+        <div style="margin-top:16px">
+          <div class="label">Budget split by campaign type</div>
+          <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:12px">
+            <tr style="background:#f9fafb"><th style="text-align:left;padding:6px 8px;color:#6b7280">Campaign type</th><th style="text-align:right;padding:6px 8px;color:#6b7280">Budget</th><th style="text-align:right;padding:6px 8px;color:#6b7280">%</th></tr>
+            ${ch.budget_split.map(b => `<tr style="border-top:1px solid #f0f0f0"><td style="padding:6px 8px">${b.campaign_type}</td><td style="text-align:right;padding:6px 8px;font-weight:500">AED ${(b.budget_aed||0).toLocaleString()}</td><td style="text-align:right;padding:6px 8px;color:#6b7280">${b.percentage}%</td></tr>`).join('')}
+          </table>
+        </div>` : ''
+      return `
       <div class="slide">
-        <div class="slide-header"><span class="slide-num">Channel Strategy</span></div>
+        <div class="slide-header"><span class="slide-num">Channel Strategy</span><span class="brand">PerfHub</span></div>
         <h2>${ch.channel}</h2>
         <div style="display:flex;gap:24px;margin-top:16px">
           <div style="flex:1">
             <div class="label">Role</div><div class="value">${ch.role}</div>
             <div class="label" style="margin-top:12px">Monthly Budget</div><div class="value">AED ${(ch.monthly_budget||0).toLocaleString()} (${ch.budget_percentage}%)</div>
+            <div class="label" style="margin-top:12px">Bid Strategy</div><div style="font-size:13px;color:#374151;margin-top:4px">${ch.bid_strategy||'—'}</div>
           </div>
           <div style="flex:2">
             <div class="label">Rationale</div><p style="font-size:13px;color:#374151;line-height:1.6">${ch.rationale}</p>
-            ${ch.benchmarks ? `<div class="label" style="margin-top:12px">Benchmarks</div><div style="display:flex;gap:8px;flex-wrap:wrap">${Object.entries(ch.benchmarks).map(([k,v])=>`<span class="chip">${k.toUpperCase()}: ${v}</span>`).join('')}</div>` : ''}
+            ${budgetSplitHtml}
           </div>
         </div>
-      </div>`).join('')
+      </div>`
+    }).join('')
+
+    const keywordSlide = strategy.keyword_strategy ? `
+    <div class="slide">
+      <div class="slide-header"><span class="slide-num">Keyword Strategy</span><span class="brand">PerfHub</span></div>
+      <h2>Keywords & Negatives</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:16px">
+        <div>
+          <h3>Branded keywords (${strategy.keyword_strategy.branded_keywords?.length||0})</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${(strategy.keyword_strategy.branded_keywords||[]).map(k=>`<span class="chip">${k}</span>`).join('')}</div>
+          <h3 style="margin-top:16px">Non-brand keywords (${strategy.keyword_strategy.non_brand_keywords?.length||0})</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${(strategy.keyword_strategy.non_brand_keywords||[]).map(k=>`<span class="chip">${k}</span>`).join('')}</div>
+        </div>
+        <div>
+          <h3>Account-level negatives</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${(strategy.keyword_strategy.account_level_negatives||[]).map(k=>`<span class="chip" style="background:#fef2f2;color:#991b1b">${k}</span>`).join('')}</div>
+          <h3 style="margin-top:16px">Campaign-level negatives</h3>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${(strategy.keyword_strategy.campaign_level_negatives||[]).map(k=>`<span class="chip" style="background:#fef2f2;color:#991b1b">${k}</span>`).join('')}</div>
+        </div>
+      </div>
+    </div>` : ''
+
+    const quickWinsSlide = strategy.quick_wins?.length ? `
+    <div class="slide">
+      <div class="slide-header"><span class="slide-num">Quick Wins</span><span class="brand">PerfHub</span></div>
+      <h2>Immediate Actions & Timeline</h2>
+      <div style="margin-top:16px">
+        ${strategy.quick_wins.map(w => {
+          const action = typeof w === 'object' ? w.action : w
+          const timeline = typeof w === 'object' ? w.timeline : null
+          const impact = typeof w === 'object' ? w.expected_impact : null
+          return `<div style="display:flex;gap:12px;padding:12px;background:#f9fafb;border-radius:8px;margin-bottom:8px;align-items:flex-start">
+            ${timeline ? `<span style="background:#1a1a2e;color:#e8c97e;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:600;white-space:nowrap">${timeline}</span>` : '<span style="color:#16a34a;font-weight:700;font-size:16px">✓</span>'}
+            <div><p style="font-size:13px;color:#374151;margin:0">${action}</p>${impact ? `<p style="font-size:11px;color:#6b7280;margin:4px 0 0">${impact}</p>` : ''}</div>
+          </div>`
+        }).join('')}
+      </div>
+    </div>` : ''
 
     win.document.write(`<!DOCTYPE html><html><head><title>Strategy — ${client.name}</title>
     <style>
@@ -74,12 +127,13 @@ function StrategyPageInner() {
       .brand{background:#1a1a2e;color:#e8c97e;padding:4px 12px;border-radius:4px;font-size:11px;font-weight:600}
       h1{font-size:32px;font-weight:700;color:#111827}
       h2{font-size:22px;font-weight:600;color:#111827}
-      h3{font-size:16px;font-weight:600;color:#111827;margin-bottom:8px}
+      h3{font-size:14px;font-weight:600;color:#111827;margin-bottom:8px}
       .label{font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
       .value{font-size:20px;font-weight:600;color:#111827}
       .chip{background:#f3f4f6;color:#374151;padding:3px 10px;border-radius:20px;font-size:11px}
       .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
       .kpi{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px}
+      .alert{background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:16px;margin-top:16px;color:#991b1b;font-size:13px}
       @media print{body{background:white}.slide{box-shadow:none;margin:0;border-radius:0;width:100%;min-height:auto}}
     </style></head><body>
 
@@ -87,6 +141,7 @@ function StrategyPageInner() {
       <div class="slide-header"><span class="slide-num">Strategy Overview</span><span class="brand">PerfHub</span></div>
       <h1>${client.name}</h1>
       <p style="font-size:16px;color:#6b7280;margin-top:8px">${goal} · ${duration} · AED ${Number(budget||0).toLocaleString()}/month</p>
+      ${strategy.tracking_alert ? `<div class="alert">⚠️ ${strategy.tracking_alert}</div>` : ''}
       ${strategy.executive_summary ? `<p style="font-size:14px;color:#374151;line-height:1.7;margin-top:24px;padding:20px;background:#f9fafb;border-radius:8px;border-left:4px solid #1a1a2e">${strategy.executive_summary}</p>` : ''}
       <div style="margin-top:20px;font-size:11px;color:#9ca3af">Based on: ${dataSources.join(' · ')}</div>
     </div>
@@ -101,6 +156,7 @@ function StrategyPageInner() {
     </div>` : ''}
 
     ${channelSlides}
+    ${keywordSlide}
 
     ${strategy.target_audience ? `
     <div class="slide">
@@ -113,14 +169,7 @@ function StrategyPageInner() {
       ${strategy.target_audience.interests?.length ? `<div style="margin-top:20px"><h3>Key Interests</h3><div style="display:flex;gap:8px;flex-wrap:wrap">${strategy.target_audience.interests.map(t=>`<span class="chip">${t}</span>`).join('')}</div></div>` : ''}
     </div>` : ''}
 
-    ${strategy.quick_wins?.length ? `
-    <div class="slide">
-      <div class="slide-header"><span class="slide-num">Quick Wins</span><span class="brand">PerfHub</span></div>
-      <h2>Immediate Actions</h2>
-      <div style="margin-top:20px;space-y:8px">
-        ${strategy.quick_wins.map((w,i)=>`<div style="display:flex;gap:12px;padding:12px;background:#f0fdf4;border-radius:8px;margin-bottom:8px"><span style="color:#16a34a;font-weight:700;font-size:16px">✓</span><p style="font-size:13px;color:#374151;line-height:1.5">${w}</p></div>`).join('')}
-      </div>
-    </div>` : ''}
+    ${quickWinsSlide}
 
     <div class="slide">
       <div class="slide-header"><span class="slide-num">Next Steps</span><span class="brand">PerfHub</span></div>
@@ -142,7 +191,7 @@ function StrategyPageInner() {
       const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent: 'strategy', payload: { clientName: client.name, industry: client.industry, goal, budget: budget || client.monthly_budget || 10000, duration, channels } })
+        body: JSON.stringify({ agent: 'strategy', payload: { clientName: client.name, industry: client.industry, goal, budget: budget || client.monthly_budget || 10000, duration, channels, currentRoas: latestRoas } })
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error)
@@ -222,6 +271,16 @@ function StrategyPageInner() {
 
       {strategy && (
         <>
+          {strategy.tracking_alert && (
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-xl mb-4">
+              <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5"/>
+              <div>
+                <p className="text-sm font-medium text-red-700 mb-0.5">Tracking issue detected</p>
+                <p className="text-xs text-red-600">{strategy.tracking_alert}</p>
+              </div>
+            </div>
+          )}
+
           <div className="card p-4 mb-4 bg-gray-50">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Executive summary</p>
@@ -240,19 +299,78 @@ function StrategyPageInner() {
           )}
 
           <Section id="channels" title="Channel strategy & budget split">
-            <div className="space-y-3">
+            <div className="space-y-4">
               {(strategy.channel_strategy||[]).map((ch, i) => (
-                <div key={i} className="border border-gray-100 rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2"><p className="text-sm font-medium text-gray-900">{ch.channel}</p><span className={roleColor[ch.role]||'badge-gray'}>{ch.role}</span></div>
-                    <div className="text-right"><p className="text-sm font-medium text-gray-900">AED {(ch.monthly_budget||0).toLocaleString()}/mo</p><p className="text-xs text-gray-400">{ch.budget_percentage}% of budget</p></div>
+                <div key={i} className="border border-gray-100 rounded-lg overflow-hidden">
+                  <div className="flex items-center justify-between p-3 bg-gray-50">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-gray-900">{ch.channel}</p>
+                      <span className={roleColor[ch.role]||'badge-gray'}>{ch.role}</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">AED {(ch.monthly_budget||0).toLocaleString()}/mo</p>
+                      <p className="text-xs text-gray-400">{ch.budget_percentage}% of budget</p>
+                    </div>
                   </div>
-                  <p className="text-xs text-gray-500 mb-2">{ch.rationale}</p>
-                  {ch.benchmarks && <div className="flex gap-3 flex-wrap">{Object.entries(ch.benchmarks).map(([k,v]) => <span key={k} className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded">{k.toUpperCase()}: {v}</span>)}</div>}
+                  <div className="p-3">
+                    {ch.bid_strategy && <p className="text-xs text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg mb-2 font-medium">Bid strategy: {ch.bid_strategy}</p>}
+                    <p className="text-xs text-gray-500 mb-3">{ch.rationale}</p>
+                    {ch.budget_split?.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Budget split by campaign type</p>
+                        <div className="space-y-1.5">
+                          {ch.budget_split.map((b, j) => (
+                            <div key={j} className="flex items-center gap-3">
+                              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-gray-900 rounded-full" style={{width: `${b.percentage}%`}}/>
+                              </div>
+                              <span className="text-xs text-gray-600 w-40 shrink-0">{b.campaign_type}</span>
+                              <span className="text-xs font-medium text-gray-900 w-24 text-right shrink-0">AED {(b.budget_aed||0).toLocaleString()}</span>
+                              <span className="text-xs text-gray-400 w-8 text-right shrink-0">{b.percentage}%</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {ch.benchmarks && <div className="flex gap-3 flex-wrap mt-3">{Object.entries(ch.benchmarks).map(([k,v]) => <span key={k} className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded">{k.toUpperCase()}: {v}</span>)}</div>}
+                  </div>
                 </div>
               ))}
             </div>
           </Section>
+
+          {strategy.keyword_strategy && (
+            <Section id="keywords" title="Keyword strategy">
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Branded keywords ({strategy.keyword_strategy.branded_keywords?.length||0})</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(strategy.keyword_strategy.branded_keywords||[]).map((k,i) => <span key={i} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">{k}</span>)}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Non-brand keywords ({strategy.keyword_strategy.non_brand_keywords?.length||0})</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(strategy.keyword_strategy.non_brand_keywords||[]).map((k,i) => <span key={i} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-lg">{k}</span>)}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Account-level negatives ({strategy.keyword_strategy.account_level_negatives?.length||0})</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(strategy.keyword_strategy.account_level_negatives||[]).map((k,i) => <span key={i} className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-lg">-{k}</span>)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Campaign-level negatives ({strategy.keyword_strategy.campaign_level_negatives?.length||0})</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(strategy.keyword_strategy.campaign_level_negatives||[]).map((k,i) => <span key={i} className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-lg">-{k}</span>)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Section>
+          )}
 
           <Section id="audience" title="Target audience">
             {strategy.target_audience && (
@@ -282,8 +400,23 @@ function StrategyPageInner() {
           </Section>
 
           {strategy.quick_wins?.length > 0 && (
-            <Section id="quickwins" title="Quick wins">
-              <div className="space-y-2">{strategy.quick_wins.map((w,i) => <div key={i} className="flex gap-2 text-sm text-gray-700"><span className="text-green-500 mt-0.5">✓</span>{w}</div>)}</div>
+            <Section id="quickwins" title="Quick wins & timeline">
+              <div className="space-y-2">
+                {strategy.quick_wins.map((w,i) => {
+                  const action = typeof w === 'object' ? w.action : w
+                  const timeline = typeof w === 'object' ? w.timeline : null
+                  const impact = typeof w === 'object' ? w.expected_impact : null
+                  return (
+                    <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                      {timeline && <span className="text-[10px] font-medium bg-gray-900 text-white px-2 py-1 rounded shrink-0 h-fit">{timeline}</span>}
+                      <div>
+                        <p className="text-sm text-gray-700">{action}</p>
+                        {impact && <p className="text-xs text-green-600 mt-1">→ {impact}</p>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </Section>
           )}
         </>
