@@ -11,7 +11,7 @@ export default function ClientReportPage() {
   const [audit, setAudit] = useState(null)
   const [competitors, setCompetitors] = useState([])
   const [strategy, setStrategy] = useState(null)
-  const [creative, setCreative] = useState(null)
+  const [creativeRow, setCreativeRow] = useState(null)
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
 
@@ -28,16 +28,19 @@ export default function ClientReportPage() {
       { data: auditData },
       { data: competitorData },
       { data: strategyData },
+      { data: creativeData },
     ] = await Promise.all([
       supabase.from('clients').select('*').eq('id', id).single(),
       supabase.from('audits').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(1),
       supabase.from('competitor_analyses').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(5),
       supabase.from('strategies').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(1),
+      supabase.from('client_creatives').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(1),
     ])
     setClient(clientData)
     setAudit(auditData?.[0] || null)
     setCompetitors(competitorData || [])
     setStrategy(strategyData?.[0] || null)
+    setCreativeRow(creativeData?.[0] || null)
     setLoading(false)
   }
 
@@ -46,6 +49,8 @@ export default function ClientReportPage() {
     const win = window.open('', '_blank')
     const s = strategy?.strategy_json
     const a = audit
+    const cr = creativeRow?.creative_json
+    const tr = creativeRow?.tracking_json
     const now = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -54,6 +59,7 @@ export default function ClientReportPage() {
     const greenPill = t => pill(t, '#f0fdf4', '#166534')
     const bluePill = t => pill(t, '#eff6ff', '#1d4ed8')
     const grayPill = t => pill(t, '#f3f4f6', '#374151')
+    const amberPill = t => pill(t, '#fffbeb', '#92400e')
     const metricCard = (label, value, status) => {
       const bg = status === 'good' ? '#f0fdf4' : status === 'bad' ? '#fef2f2' : '#fffbeb'
       const border = status === 'good' ? '#bbf7d0' : status === 'bad' ? '#fecaca' : '#fde68a'
@@ -193,13 +199,127 @@ export default function ClientReportPage() {
       strategyHtml = `${sectionTitle('Strategy & media plan')}<p style="font-size:13px;color:#9ca3af">No strategy has been built for this client yet.</p>`
     }
 
-    // ── AD CREATIVE NOTE ──────────────────────────────────────────────────────
-    const creativeHtml = `
-      ${sectionTitle('Ad creative')}
-      <div style="background:#f9fafb;border-radius:8px;padding:16px;border:1px solid #e5e7eb">
-        <p style="font-size:13px;color:#6b7280;margin:0">Ad copy variants are available in the Ad Creative section of PerfHub. Export from the Ad Creative page for the full set of headlines, descriptions and creative briefs per variant.</p>
-      </div>
-    `
+    // ── AD CREATIVE SECTION ────────────────────────────────────────────────────
+    let creativeHtml = ''
+    if (cr?.ads?.length) {
+      const adTypeLabel = creativeRow?.ad_type || 'Ad'
+      const objectiveLabel = creativeRow?.objective || ''
+      creativeHtml = `
+        ${sectionTitle('Ad creative', `${adTypeLabel}${objectiveLabel ? ' · ' + objectiveLabel : ''} · ${cr.ads.length} variants`)}
+        ${cr.ab_test_recommendation ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;margin-bottom:16px"><p style="font-size:11px;font-weight:600;color:#1d4ed8;margin:0 0 4px">A/B test recommendation</p><p style="font-size:12px;color:#1e40af;margin:0">${cr.ab_test_recommendation}</p></div>` : ''}
+        ${cr.ads.map((ad, i) => `
+          <div style="border:1px solid #e5e7eb;border-radius:10px;margin-bottom:14px;overflow:hidden">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#f9fafb;border-bottom:1px solid #f0f0f0">
+              <div>
+                <span style="font-size:13px;font-weight:600;color:#111827">${ad.variant}</span>
+                <span style="font-size:11px;color:#9ca3af;margin-left:8px">— ${ad.angle}</span>
+              </div>
+              <span style="font-size:10px;background:#f3f4f6;color:#374151;padding:2px 8px;border-radius:20px">${adTypeLabel}</span>
+            </div>
+            <div style="padding:14px 16px">
+              ${ad.headlines?.length ? `
+                <div style="margin-bottom:12px">
+                  <div style="font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Headlines</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px">
+                    ${ad.headlines.slice(0,6).map(h => `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:5px 10px;font-size:12px;color:#374151">${h}</div>`).join('')}
+                    ${ad.headlines.length > 6 ? `<div style="background:#f3f4f6;border-radius:6px;padding:5px 10px;font-size:12px;color:#9ca3af">+${ad.headlines.length - 6} more</div>` : ''}
+                  </div>
+                </div>` : ''}
+              ${ad.descriptions?.length ? `
+                <div style="margin-bottom:12px">
+                  <div style="font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Descriptions</div>
+                  ${ad.descriptions.slice(0,3).map(d => `<div style="background:#f9fafb;border-radius:6px;padding:8px 10px;font-size:12px;color:#374151;margin-bottom:4px;line-height:1.4">${d}</div>`).join('')}
+                </div>` : ''}
+              ${ad.primary_text ? `
+                <div style="margin-bottom:10px">
+                  <div style="font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Primary text</div>
+                  <div style="background:#f9fafb;border-radius:6px;padding:8px 10px;font-size:12px;color:#374151;line-height:1.5">${ad.primary_text}</div>
+                </div>` : ''}
+              ${ad.image_direction ? `
+                <div>
+                  <div style="font-size:10px;font-weight:600;color:#9ca3af;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Creative direction</div>
+                  <div style="background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 6px 6px 0;padding:8px 10px;font-size:12px;color:#6b7280;font-style:italic">${ad.image_direction}</div>
+                </div>` : ''}
+            </div>
+          </div>`).join('')}
+        ${cr.creative_notes ? `<div style="background:#f9fafb;border-radius:8px;padding:14px 16px;border:1px solid #e5e7eb"><p style="font-size:11px;font-weight:600;color:#374151;margin:0 0 6px">Notes for design team</p><p style="font-size:12px;color:#6b7280;margin:0;line-height:1.5">${cr.creative_notes}</p></div>` : ''}
+      `
+    } else {
+      creativeHtml = `
+        ${sectionTitle('Ad creative')}
+        <div style="background:#f9fafb;border-radius:8px;padding:16px;border:1px solid #e5e7eb">
+          <p style="font-size:13px;color:#6b7280;margin:0">No ad creative has been generated yet. Go to the Ad Creative agent and generate copy for this client — it will automatically appear in future reports.</p>
+        </div>
+      `
+    }
+
+    // ── TRACKING SETUP SECTION ─────────────────────────────────────────────────
+    let trackingHtml = ''
+    if (tr?.tracking_setup?.length) {
+      const priorityColors = {
+        First: { bg: '#fef2f2', color: '#991b1b' },
+        Second: { bg: '#fffbeb', color: '#92400e' },
+        Third: { bg: '#f0fdf4', color: '#166534' },
+        Fourth: { bg: '#f3f4f6', color: '#374151' },
+      }
+      trackingHtml = `
+        ${sectionTitle('Tracking setup', 'Full implementation guide · GTM · GA4 · Meta Pixel · Google Ads')}
+
+        ${tr.key_events_to_track?.length ? `
+          <div style="margin-bottom:16px">
+            <p style="font-size:11px;font-weight:600;color:#374151;margin:0 0 8px">Key events to track</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${tr.key_events_to_track.map(e => `<span style="background:#eff6ff;color:#1d4ed8;padding:4px 10px;border-radius:6px;font-size:11px;font-family:monospace">${e}</span>`).join('')}
+            </div>
+          </div>` : ''}
+
+        ${tr.gtm_tags_needed?.length ? `
+          <div style="margin-bottom:20px">
+            <p style="font-size:11px;font-weight:600;color:#374151;margin:0 0 8px">GTM tags needed</p>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              ${tr.gtm_tags_needed.map(t => `<span style="background:#fffbeb;color:#92400e;padding:4px 10px;border-radius:6px;font-size:11px">${t}</span>`).join('')}
+            </div>
+          </div>` : ''}
+
+        ${tr.tracking_setup.map(platform => {
+          const pc = priorityColors[platform.priority] || priorityColors.Fourth
+          return `
+            <div style="border:1px solid #e5e7eb;border-radius:10px;margin-bottom:14px;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:#f9fafb;border-bottom:1px solid #f0f0f0">
+                <span style="background:${pc.bg};color:${pc.color};padding:2px 10px;border-radius:20px;font-size:10px;font-weight:600">${platform.priority}</span>
+                <span style="font-size:13px;font-weight:600;color:#111827">${platform.platform}</span>
+              </div>
+              <div style="padding:14px 16px">
+                ${(platform.steps||[]).map(s => `
+                  <div style="display:flex;gap:12px;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid #f9fafb">
+                    <div style="width:22px;height:22px;border-radius:50%;background:#1a1a2e;color:#e8c97e;font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${s.step}</div>
+                    <div>
+                      <div style="font-size:12px;font-weight:600;color:#111827;margin-bottom:3px">${s.action}</div>
+                      <div style="font-size:11px;color:#6b7280;line-height:1.6">${s.detail}</div>
+                    </div>
+                  </div>`).join('')}
+              </div>
+            </div>`
+        }).join('')}
+
+        ${tr.verification_checklist?.length ? `
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px">
+            <p style="font-size:11px;font-weight:600;color:#166534;margin:0 0 10px">Verification checklist</p>
+            ${tr.verification_checklist.map(item => `
+              <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px">
+                <div style="width:14px;height:14px;border:1.5px solid #16a34a;border-radius:3px;flex-shrink:0;margin-top:1px"></div>
+                <span style="font-size:12px;color:#374151;line-height:1.4">${item}</span>
+              </div>`).join('')}
+          </div>` : ''}
+      `
+    } else {
+      trackingHtml = `
+        ${sectionTitle('Tracking setup')}
+        <div style="background:#f9fafb;border-radius:8px;padding:16px;border:1px solid #e5e7eb">
+          <p style="font-size:13px;color:#6b7280;margin:0">No tracking guide has been generated yet. Go to the Ad Creative agent → Tracking setup tab and generate a guide for this client.</p>
+        </div>
+      `
+    }
 
     win.document.write(`<!DOCTYPE html><html><head><title>Full Report — ${client?.name}</title>
     <style>
@@ -227,6 +347,7 @@ export default function ClientReportPage() {
           ${competitors.length ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 16px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Competitors tracked</div><div style="font-size:13px;font-weight:500">${competitors.length}</div></div>` : ''}
           ${strategy ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 16px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Strategy</div><div style="font-size:13px;font-weight:500">${strategy.title}</div></div>` : ''}
           ${client?.monthly_budget ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 16px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Monthly budget</div><div style="font-size:13px;font-weight:500">AED ${client.monthly_budget.toLocaleString()}</div></div>` : ''}
+          ${creativeRow ? `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px 16px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Ad creative</div><div style="font-size:13px;font-weight:500">${cr?.ads?.length || 0} variants · ${creativeRow.ad_type || 'Search'}</div></div>` : ''}
         </div>
       </div>
       <div style="border-top:1px solid #f0f0f0;padding-top:20px">
@@ -239,7 +360,8 @@ export default function ClientReportPage() {
       ${auditHtml}
       <div class="page-break" style="margin-top:40px">${competitorHtml}</div>
       <div class="page-break" style="margin-top:40px">${strategyHtml}</div>
-      <div style="margin-top:40px">${creativeHtml}</div>
+      <div class="page-break" style="margin-top:40px">${creativeHtml}</div>
+      <div class="page-break" style="margin-top:40px">${trackingHtml}</div>
       <div style="margin-top:48px;padding-top:20px;border-top:1px solid #f0f0f0;display:flex;justify-content:space-between;align-items:center">
         <p style="font-size:11px;color:#9ca3af">PerfHub · Performance Marketing Report · ${client?.name}</p>
         <p style="font-size:11px;color:#9ca3af">${now}</p>
@@ -288,7 +410,8 @@ export default function ClientReportPage() {
           ['Account audit', audit ? `${audit.platform === 'google' ? 'Google Ads' : 'Meta Ads'} · ${audit.date_range} · ${new Date(audit.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}` : null],
           ['Competitor analysis', competitors.length ? `${competitors.length} competitor${competitors.length>1?'s':''} · ${competitors.map(c=>c.competitor_name).join(', ')}` : null],
           ['Strategy & media plan', strategy ? `${strategy.title} · ${new Date(strategy.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}` : null],
-          ['Ad creative', 'Export from Ad Creative page for full copy'],
+          ['Ad creative', creativeRow?.creative_json ? `${creativeRow.creative_json.ads?.length || 0} variants · ${creativeRow.ad_type || 'Search'} · saved ${new Date(creativeRow.updated_at || creativeRow.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}` : null],
+          ['Tracking setup', creativeRow?.tracking_json ? `GTM + GA4 + Meta Pixel guide · saved ${new Date(creativeRow.updated_at || creativeRow.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}` : null],
         ].map(([label, detail]) => (
           <div key={label} className={`card p-4 flex items-center justify-between ${detail ? '' : 'opacity-40'}`}>
             <div className="flex items-center gap-3">

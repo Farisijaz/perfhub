@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
-import { Play, Copy, Check, ChevronDown, ChevronUp, ExternalLink, Layout, Shield } from 'lucide-react'
+import { Play, Copy, Check, ChevronDown, ChevronUp, ExternalLink, Layout, Shield, CheckCircle } from 'lucide-react'
 
 const AD_TYPES = ['Search ads (Google)','Responsive display ads','Meta feed ads','Meta story ads','YouTube bumper ads','LinkedIn sponsored content']
 const OBJECTIVES = ['Drive conversions','Generate leads','Increase brand awareness','Drive website traffic','Promote an offer/discount','App installs']
@@ -35,11 +35,94 @@ function CreativePageInner() {
   const [expandedTracking, setExpandedTracking] = useState(0)
   const [trackingPlatform, setTrackingPlatform] = useState('google')
   const [loadingTracking, setLoadingTracking] = useState(false)
+  const [savedCreativeId, setSavedCreativeId] = useState(null)
+  const [savedAt, setSavedAt] = useState(null)
+  const [loadingExisting, setLoadingExisting] = useState(false)
 
   useEffect(() => {
     const supabase = createBrowserClient()
     supabase.from('clients').select('*').order('name').then(({ data }) => setClients(data || []))
   }, [])
+
+  // Load most recent saved creative + tracking when client changes
+  useEffect(() => {
+    if (!clientId) {
+      setAds(null)
+      setTracking(null)
+      setSavedCreativeId(null)
+      setSavedAt(null)
+      return
+    }
+    loadExisting()
+  }, [clientId])
+
+  async function loadExisting() {
+    setLoadingExisting(true)
+    const supabase = createBrowserClient()
+    const { data } = await supabase
+      .from('client_creatives')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    if (data?.[0]) {
+      const row = data[0]
+      if (row.creative_json) {
+        setAds(row.creative_json)
+        setAdType(row.ad_type || 'Search ads (Google)')
+        setObjective(row.objective || 'Drive conversions')
+        setProduct(row.product || '')
+        setSavedCreativeId(row.id)
+        setSavedAt(row.updated_at || row.created_at)
+      }
+      if (row.tracking_json) {
+        setTracking(row.tracking_json)
+      }
+    }
+    setLoadingExisting(false)
+  }
+
+  async function saveToSupabase({ creativeData, trackingData }) {
+    const supabase = createBrowserClient()
+    if (savedCreativeId) {
+      // Update existing row
+      const update = {}
+      if (creativeData !== undefined) {
+        update.creative_json = creativeData
+        update.ad_type = adType
+        update.objective = objective
+        update.product = product
+      }
+      if (trackingData !== undefined) update.tracking_json = trackingData
+      update.updated_at = new Date().toISOString()
+      const { data } = await supabase
+        .from('client_creatives')
+        .update(update)
+        .eq('id', savedCreativeId)
+        .select()
+        .single()
+      if (data) setSavedAt(data.updated_at)
+    } else {
+      // Insert new row
+      const insert = {
+        client_id: clientId,
+        ad_type: adType,
+        objective: objective,
+        product: product,
+      }
+      if (creativeData !== undefined) insert.creative_json = creativeData
+      if (trackingData !== undefined) insert.tracking_json = trackingData
+      const { data } = await supabase
+        .from('client_creatives')
+        .insert(insert)
+        .select()
+        .single()
+      if (data) {
+        setSavedCreativeId(data.id)
+        setSavedAt(data.created_at)
+      }
+    }
+  }
 
   function copy(text, id) {
     navigator.clipboard.writeText(text)
@@ -58,7 +141,10 @@ function CreativePageInner() {
         body: JSON.stringify({ agent: 'tracking', payload: { clientName: client.name, industry: client.industry, website: client.website, platform: trackingPlatform } })
       })
       const data = await res.json()
-      if (data.success) setTracking(data.tracking)
+      if (data.success) {
+        setTracking(data.tracking)
+        await saveToSupabase({ trackingData: data.tracking })
+      }
     } catch (e) { alert('Error: ' + e.message) }
     setLoadingTracking(false)
   }
@@ -74,7 +160,10 @@ function CreativePageInner() {
         body: JSON.stringify({ agent: 'creative', payload: { clientName: client.name, industry: client.industry, website: client.website, adType, objective, product, usp, cta, tone } })
       })
       const adsData = await res.json()
-      if (adsData.success) setAds(adsData.creative)
+      if (adsData.success) {
+        setAds(adsData.creative)
+        await saveToSupabase({ creativeData: adsData.creative })
+      }
     } catch (e) { alert('Error: ' + e.message) }
     setRunning(false)
   }
@@ -152,16 +241,24 @@ function CreativePageInner() {
         </div>
       </div>
 
-      {/* Client selector — always visible */}
+      {/* Client selector */}
       <div className="card p-4 mb-4">
         <label className="block text-xs text-gray-500 mb-1.5">Client</label>
-        <select className="select max-w-xs" value={clientId} onChange={e => setClientId(e.target.value)}>
-          <option value="">Select client...</option>
-          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <div className="flex items-center gap-3">
+          <select className="select max-w-xs" value={clientId} onChange={e => setClientId(e.target.value)}>
+            <option value="">Select client...</option>
+            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          {loadingExisting && <span className="text-xs text-gray-400">Loading saved output...</span>}
+          {savedAt && !loadingExisting && (
+            <span className="flex items-center gap-1 text-xs text-green-600">
+              <CheckCircle size={11}/> Saved to report · {new Date(savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Top-level tabs — always visible */}
+      {/* Top-level tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-100">
         {[['ads','Ad creative'],['tracking','Tracking setup']].map(([tab,label]) => (
           <button key={tab} className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${activeTab===tab ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`} onClick={() => setActiveTab(tab)}>
@@ -297,7 +394,6 @@ function CreativePageInner() {
 
           {tracking && (
             <div className="space-y-3">
-              {/* Key events */}
               {tracking.key_events_to_track?.length > 0 && (
                 <div className="card p-4">
                   <p className="text-xs font-medium text-gray-500 mb-2">Key events to track</p>
@@ -305,7 +401,6 @@ function CreativePageInner() {
                 </div>
               )}
 
-              {/* GTM tags needed */}
               {tracking.gtm_tags_needed?.length > 0 && (
                 <div className="card p-4">
                   <p className="text-xs font-medium text-gray-500 mb-2">GTM tags needed</p>
@@ -313,7 +408,6 @@ function CreativePageInner() {
                 </div>
               )}
 
-              {/* Setup steps */}
               {(tracking.tracking_setup||[]).map((platform, i) => (
                 <div key={i} className="card overflow-hidden">
                   <button className="w-full flex items-center justify-between p-4" onClick={() => setExpandedTracking(expandedTracking === i ? null : i)}>
@@ -339,7 +433,6 @@ function CreativePageInner() {
                 </div>
               ))}
 
-              {/* Verification checklist */}
               {tracking.verification_checklist?.length > 0 && (
                 <div className="card p-4">
                   <p className="text-xs font-medium text-gray-500 mb-3">Verification checklist</p>
