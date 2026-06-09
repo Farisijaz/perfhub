@@ -123,8 +123,21 @@ function AuditPageInner() {
 
   function buildMetricCards(d, client) {
     const industry = client?.industry || ''
-    const benchmarks = { 'F&B / Restaurant': { roas: 3.5, cpa: 25, cpc: 1.2, cpm: 8 }, 'E-commerce': { roas: 4.0, cpa: 30, cpc: 1.5, cpm: 10 }, 'Real Estate': { roas: 2.5, cpa: 80, cpc: 3.5, cpm: 15 }, 'Fashion': { roas: 4.2, cpa: 25, cpc: 1.3, cpm: 9 } }
-    const b = benchmarks[industry] || { roas: 3.5, cpa: 35, cpc: 2.0, cpm: 10 }
+    const benchmarks = {
+      'F&B / Restaurant':    { roas: 3.5, cpa: 35,  cpc: 1.2, cpm: 8  },
+      'E-commerce':          { roas: 4.0, cpa: 200, cpc: 1.5, cpm: 10 },
+      'Real Estate':         { roas: 2.5, cpa: 800, cpc: 3.5, cpm: 15 },
+      'Fashion':             { roas: 4.2, cpa: 180, cpc: 1.3, cpm: 9  },
+      'Beauty & Wellness':   { roas: 4.0, cpa: 150, cpc: 1.4, cpm: 9  },
+      'Healthcare':          { roas: 2.5, cpa: 120, cpc: 2.5, cpm: 12 },
+      'Education':           { roas: 2.0, cpa: 150, cpc: 2.0, cpm: 10 },
+      'Automotive':          { roas: 2.0, cpa: 600, cpc: 4.0, cpm: 18 },
+      'Finance':             { roas: 2.0, cpa: 200, cpc: 5.0, cpm: 20 },
+      'Retail':              { roas: 3.5, cpa: 120, cpc: 1.5, cpm: 9  },
+      'Travel & Hospitality':{ roas: 3.0, cpa: 250, cpc: 2.5, cpm: 12 },
+      'Technology':          { roas: 2.5, cpa: 180, cpc: 3.0, cpm: 14 },
+    }
+    const b = benchmarks[industry] || { roas: 3.5, cpa: 150, cpc: 2.0, cpm: 10 }
     const s = (v, good, ok) => v <= good ? 'good' : v <= ok ? 'warn' : 'bad'
     const si = (v, good, ok) => v >= good ? 'good' : v >= ok ? 'warn' : 'bad'
     const spend = Math.round(d.totals.spend * 100) / 100
