@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
 import { useRouter } from 'next/navigation'
-import { Plus, Search, BarChart3, Eye, Map, X, Check, AlertCircle } from 'lucide-react'
+import { Plus, Search, BarChart3, Eye, Map, X, Check, AlertCircle, FileText } from 'lucide-react'
 
 const INDUSTRIES = ['F&B / Restaurant','E-commerce','Real Estate','Healthcare','Education','Automotive','Finance','Retail','Travel & Hospitality','Technology','Fashion','Beauty & Wellness','Other']
 const COLORS = [['bg-purple-50','text-purple-800'],['bg-teal-50','text-teal-800'],['bg-blue-50','text-blue-800'],['bg-orange-50','text-orange-800'],['bg-pink-50','text-pink-800']]
@@ -105,13 +105,16 @@ export default function ClientsPage() {
                   <div><p className="text-[10px] text-gray-400 mb-0.5">Monthly budget</p><p className="text-sm font-medium">{c.monthly_budget ? `AED ${c.monthly_budget.toLocaleString()}` : '—'}</p></div>
                   <div><p className="text-[10px] text-gray-400 mb-0.5">Platforms</p><p className="text-sm font-medium">{platforms.length ? platforms.join(', ') : '—'}</p></div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 mb-2">
                   {[['Audit', BarChart3, '/audit'],['Competitors', Eye, '/competitors'],['Strategy', Map, '/strategy']].map(([lbl, Icon, href]) => (
                     <button key={lbl} className="btn-secondary flex-1 justify-center text-xs py-1.5" onClick={()=>router.push(`${href}?client=${c.id}`)}>
                       <Icon size={12}/> {lbl}
                     </button>
                   ))}
                 </div>
+                <button className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors" onClick={()=>router.push(`/clients/${c.id}`)}>
+                  <FileText size={12}/> Full report
+                </button>
               </div>
             )
           })}
