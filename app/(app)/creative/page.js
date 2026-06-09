@@ -30,6 +30,7 @@ function CreativePageInner() {
   const [ads, setAds] = useState(null)
   const [tracking, setTracking] = useState(null)
   const [activeTab, setActiveTab] = useState('ads')
+  const [activeAdTab, setActiveAdTab] = useState('copy')
   const [copied, setCopied] = useState('')
   const [expandedTracking, setExpandedTracking] = useState(0)
   const [trackingPlatform, setTrackingPlatform] = useState('google')
@@ -215,11 +216,11 @@ function CreativePageInner() {
             <>
               <div className="flex gap-1 mb-4 border-b border-gray-100">
                 {[['copy','Ad copy (3 variants)'],['mockup','Creative mockups']].map(([tab,label]) => (
-                  <button key={tab} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab===tab ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`} onClick={() => setActiveTab(tab)}>{label}</button>
+                  <button key={tab} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeAdTab===tab ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`} onClick={() => setActiveAdTab(tab)}>{label}</button>
                 ))}
               </div>
 
-              {activeTab === 'copy' && (
+              {activeAdTab === 'copy' && (
                 <div className="space-y-4">
                   {ads.ab_test_recommendation && <div className="card p-3 bg-blue-50 border-blue-100"><p className="text-xs font-medium text-blue-700 mb-1">A/B test recommendation</p><p className="text-sm text-blue-600">{ads.ab_test_recommendation}</p></div>}
                   {(ads.ads||[]).map((ad, i) => (
@@ -252,7 +253,7 @@ function CreativePageInner() {
                 </div>
               )}
 
-              {activeTab === 'mockup' && (
+              {activeAdTab === 'mockup' && (
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-sm text-gray-500">Visual previews of each ad variant. Use as reference when designing in Canva.</p>
