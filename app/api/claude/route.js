@@ -268,6 +268,165 @@ Respond with ONLY this JSON:
         return Response.json({ success: true, tracking })
       }
 
+
+      case 'market_audit': {
+        const { clientName, industry, website, market, competitors, budget } = payload
+        const competitorList = competitors.map((c, i) => `${i+1}. ${c.name}${c.website ? ' (' + c.website + ')' : ''}`).join('\n')
+        const text = await callClaude({
+          systemPrompt: `You are a senior performance marketing analyst specialising in paid advertising across global markets. You have deep knowledge of Google Ads and Meta Ads benchmarks, competitive landscapes, and market-specific consumer behaviour. Always respond with valid JSON only, no markdown, no backticks.`,
+          userPrompt: `Conduct a market audit for a NEW business entering paid advertising for the first time.
+
+Client: ${clientName}
+Industry: ${industry}
+Website: ${website || 'not provided'}
+Target market: ${market}
+Monthly budget: ${budget ? 'AED ' + budget : 'not set'}
+
+Competitors to analyse:
+${competitorList}
+
+Provide a comprehensive market audit covering industry benchmarks for this specific market, competitor paid ad intelligence, and entry opportunities. Be specific to ${market} — include local platform preferences, CPCs in AED or local currency, and market-specific consumer behaviour.
+
+Respond with ONLY this JSON:
+{
+  "summary": "3-4 paragraph market overview covering: the paid advertising landscape in ${market} for ${industry}, competitive intensity, platform preferences (e.g. Snapchat in GCC, TikTok in Pakistan), and what a new entrant needs to know before launching",
+  "benchmarks": {
+    "google": {
+      "avg_cpc": "AED X.XX",
+      "avg_cpm": "AED X.XX",
+      "avg_ctr": "X.X%",
+      "avg_cpa": "AED XXX",
+      "avg_roas": "X.Xx",
+      "avg_conv_rate": "X.X%"
+    },
+    "meta": {
+      "avg_cpc": "AED X.XX",
+      "avg_cpm": "AED X.XX",
+      "avg_ctr": "X.X%",
+      "avg_cpa": "AED XXX",
+      "avg_roas": "X.Xx",
+      "avg_engagement_rate": "X.X%"
+    },
+    "platform_notes": "1-2 sentences on which platforms dominate in ${market} for this industry and why"
+  },
+  "competitor_intel": [
+    {
+      "name": "competitor name",
+      "website": "their website",
+      "ad_presence": "Strong|Moderate|Weak",
+      "estimated_spend": "AED X,000 - AED X,000/month estimate",
+      "platforms": ["Google Ads", "Meta Ads"],
+      "ad_angles": ["angle 1", "angle 2", "angle 3"],
+      "likely_keywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5"],
+      "gap": "one sentence on what they're missing that ${clientName} can exploit"
+    }
+  ],
+  "opportunities": [
+    {
+      "title": "opportunity title",
+      "detail": "2-3 sentence explanation of the opportunity specific to ${market}",
+      "action": "specific first action to take"
+    },
+    {
+      "title": "opportunity title",
+      "detail": "explanation",
+      "action": "action"
+    },
+    {
+      "title": "opportunity title",
+      "detail": "explanation",
+      "action": "action"
+    }
+  ]
+}`
+        })
+        const result = safeJSON(text)
+        if (!result) return Response.json({ success: false, error: 'Could not parse market audit' }, { status: 500 })
+        return Response.json({ success: true, ...result })
+      }
+
+      case 'market_strategy': {
+        const { clientName, industry, website, market, budget, competitors, benchmarks, competitorIntel, opportunities, summary } = payload
+        const text = await callClaude({
+          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency. You build launch strategies for businesses entering paid advertising for the first time. Be specific, actionable, and tailored to the target market. Always respond with valid JSON only, no markdown, no backticks.`,
+          userPrompt: `Build a paid advertising LAUNCH strategy for a new business with no existing ad presence.
+
+Client: ${clientName}
+Industry: ${industry}
+Market: ${market}
+Monthly budget: ${budget ? 'AED ' + budget : 'AED 10,000 (assumed)'}
+Website: ${website || 'not provided'}
+
+Market context:
+${summary || ''}
+
+Benchmarks for ${market}:
+Google — CPC: ${benchmarks?.google?.avg_cpc}, CPM: ${benchmarks?.google?.avg_cpm}, CPA: ${benchmarks?.google?.avg_cpa}, ROAS: ${benchmarks?.google?.avg_roas}
+Meta — CPC: ${benchmarks?.meta?.avg_cpc}, CPM: ${benchmarks?.meta?.avg_cpm}, CPA: ${benchmarks?.meta?.avg_cpa}
+
+Competitors identified: ${competitorIntel?.map(c=>c.name).join(', ') || 'none'}
+
+Top opportunities:
+${opportunities?.map((o,i)=>`${i+1}. ${o.title}: ${o.detail}`).join('\n') || ''}
+
+Build a complete launch strategy. Use market-specific insights. Budget splits should reflect ${market} platform priorities.
+
+Respond with ONLY this JSON:
+{
+  "executive_summary": "3-4 sentence launch overview tailored to ${market} market conditions and competitive landscape",
+  "target_audience": {
+    "primary": "detailed description with age, location within ${market}, income level, behaviour",
+    "secondary": "secondary audience description",
+    "interests": ["interest1", "interest2", "interest3", "interest4", "interest5"]
+  },
+  "channel_strategy": [
+    {
+      "channel": "channel name",
+      "role": "conversion|awareness|consideration",
+      "budget_percentage": 40,
+      "monthly_budget": 4000,
+      "rationale": "why this channel for ${market} and this industry",
+      "bid_strategy": "specific bid strategy for a new account with no data",
+      "budget_split": [
+        {"campaign_type": "campaign name", "budget_aed": 2000, "percentage": 50, "rationale": "why"}
+      ]
+    }
+  ],
+  "keyword_strategy": {
+    "branded_keywords": ["kw1","kw2","kw3","kw4","kw5"],
+    "non_brand_keywords": ["kw1","kw2","kw3","kw4","kw5","kw6","kw7","kw8","kw9","kw10"],
+    "competitor_keywords": ["kw1","kw2","kw3","kw4","kw5"],
+    "account_level_negatives": ["neg1","neg2","neg3","neg4","neg5"],
+    "campaign_level_negatives": ["neg1","neg2","neg3","neg4","neg5"]
+  },
+  "expected_kpis": {
+    "monthly_impressions": "range",
+    "monthly_clicks": "range",
+    "monthly_conversions": "range",
+    "expected_roas": "Xx (based on ${market} benchmarks)",
+    "expected_cpa": "AED X",
+    "expected_cpl": "AED X or N/A"
+  },
+  "quick_wins": [
+    {"action": "action", "timeline": "Week 1", "expected_impact": "specific result"},
+    {"action": "action", "timeline": "Week 1", "expected_impact": "specific result"},
+    {"action": "action", "timeline": "Week 2", "expected_impact": "specific result"},
+    {"action": "action", "timeline": "Week 3-4", "expected_impact": "specific result"}
+  ],
+  "launch_checklist": [
+    "checklist item 1",
+    "checklist item 2",
+    "checklist item 3",
+    "checklist item 4",
+    "checklist item 5"
+  ]
+}`
+        })
+        const strategy = safeJSON(text)
+        if (!strategy) return Response.json({ success: false, error: 'Could not parse strategy' }, { status: 500 })
+        return Response.json({ success: true, strategy })
+      }
+
       case 'insight': {
         const { clientName, industry, auditCount, latestMetrics, strategyCount, competitorNames } = payload
         const text = await callClaude({

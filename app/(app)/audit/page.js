@@ -3,13 +3,29 @@ import { useState, useEffect, useCallback, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
 import { extractRealRows, parseGoogleAds, parseMetaAds, autoDetectPlatform } from '@/lib/csvParser'
-import { Upload, Play, FileText, X, TrendingUp, TrendingDown, Minus, Download } from 'lucide-react'
+import { Upload, Play, FileText, X, TrendingUp, TrendingDown, Minus, Download, Globe, BarChart2, ChevronDown, ChevronUp } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+
+const MARKETS = [
+  'UAE',
+  'Saudi Arabia',
+  'GCC (Kuwait, Qatar, Bahrain, Oman)',
+  'Egypt',
+  'Pakistan',
+  'United Kingdom',
+  'United States',
+  'Canada',
+  'Australia',
+  'Global / Other',
+]
 
 function AuditPageInner() {
   const params = useSearchParams()
   const [clients, setClients] = useState([])
   const [clientId, setClientId] = useState(params.get('client') || '')
+  const [auditMode, setAuditMode] = useState('account') // 'account' | 'market'
+
+  // Account audit state
   const [platform, setPlatform] = useState('google')
   const [dateRange, setDateRange] = useState('Last 30 days')
   const [files, setFiles] = useState([])
@@ -22,6 +38,20 @@ function AuditPageInner() {
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
 
+  // Market audit state
+  const [market, setMarket] = useState('UAE')
+  const [competitors, setCompetitors] = useState([
+    { name: '', website: '' },
+    { name: '', website: '' },
+    { name: '', website: '' },
+  ])
+  const [marketRunning, setMarketRunning] = useState(false)
+  const [marketResult, setMarketResult] = useState(null)
+  const [marketStrategy, setMarketStrategy] = useState(null)
+  const [pastMarketAudits, setPastMarketAudits] = useState([])
+  const [expandedCompetitor, setExpandedCompetitor] = useState(null)
+  const [strategyRunning, setStrategyRunning] = useState(false)
+
   useEffect(() => {
     const supabase = createBrowserClient()
     supabase.from('clients').select('*').order('name').then(({ data }) => setClients(data || []))
@@ -31,12 +61,106 @@ function AuditPageInner() {
     if (!clientId) return
     const supabase = createBrowserClient()
     supabase.from('audits').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(5).then(({ data }) => setPastAudits(data || []))
+    supabase.from('market_audits').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(3).then(({ data }) => {
+      setPastMarketAudits(data || [])
+      if (data?.[0]) {
+        setMarketResult(data[0])
+        if (data[0].strategy_json) setMarketStrategy(data[0].strategy_json)
+      }
+    })
   }, [clientId])
 
   function addFiles(newFiles) {
     const valid = newFiles.filter(f => /\.csv$/i.test(f.name))
     setFiles(prev => [...prev, ...valid.filter(f => !prev.find(p => p.name === f.name))])
     setError('')
+  }
+
+  function updateCompetitor(index, field, value) {
+    setCompetitors(prev => prev.map((c, i) => i === index ? { ...c, [field]: value } : c))
+  }
+
+  async function runMarketAudit() {
+    if (!clientId) return
+    const client = clients.find(c => c.id === clientId)
+    const filledCompetitors = competitors.filter(c => c.name.trim())
+    if (!filledCompetitors.length) { setError('Add at least one competitor'); return }
+
+    setMarketRunning(true)
+    setMarketResult(null)
+    setMarketStrategy(null)
+    setError('')
+
+    try {
+      // Step 1: Market audit
+      const auditRes = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent: 'market_audit',
+          payload: {
+            clientName: client.name,
+            industry: client.industry,
+            website: client.website,
+            market,
+            competitors: filledCompetitors,
+            budget: client.monthly_budget,
+          }
+        })
+      })
+      const auditData = await auditRes.json()
+      if (!auditData.success) throw new Error(auditData.error)
+
+      setMarketResult({ ...auditData, market, competitors: filledCompetitors })
+
+      // Step 2: Auto-generate strategy from market audit data
+      setStrategyRunning(true)
+      const stratRes = await fetch('/api/claude', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent: 'market_strategy',
+          payload: {
+            clientName: client.name,
+            industry: client.industry,
+            website: client.website,
+            market,
+            budget: client.monthly_budget,
+            competitors: filledCompetitors,
+            benchmarks: auditData.benchmarks,
+            competitorIntel: auditData.competitor_intel,
+            opportunities: auditData.opportunities,
+            summary: auditData.summary,
+          }
+        })
+      })
+      const stratData = await stratRes.json()
+      if (stratData.success) setMarketStrategy(stratData.strategy)
+
+      // Save both to Supabase
+      const supabase = createBrowserClient()
+      const { data: saved } = await supabase.from('market_audits').insert([{
+        client_id: clientId,
+        market,
+        competitors: filledCompetitors,
+        benchmark_json: auditData.benchmarks,
+        competitor_intel_json: auditData.competitor_intel,
+        opportunities_json: auditData.opportunities,
+        summary: auditData.summary,
+        strategy_json: stratData.success ? stratData.strategy : null,
+      }]).select().single()
+
+      if (saved) {
+        setMarketResult(prev => ({ ...prev, id: saved.id, created_at: saved.created_at }))
+        const { data: past } = await supabase.from('market_audits').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(3)
+        setPastMarketAudits(past || [])
+      }
+    } catch (e) {
+      setError('Error: ' + e.message)
+    }
+
+    setMarketRunning(false)
+    setStrategyRunning(false)
   }
 
   async function exportPDF() {
@@ -155,121 +279,429 @@ function AuditPageInner() {
   const sBg = { good: 'bg-green-50', bad: 'bg-red-50', warn: 'bg-amber-50' }
   const sIcon = s => s === 'good' ? <TrendingUp size={12} className="text-green-600"/> : s === 'bad' ? <TrendingDown size={12} className="text-red-600"/> : <Minus size={12} className="text-amber-600"/>
 
+  const mr = marketResult
+
   return (
     <div className="p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Account audit</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Agent 1 — upload campaign data and get a full AI-powered analysis</p>
+          <h1 className="text-lg font-semibold text-gray-900">Audit</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Agent 1 — account performance audit or market intelligence for new clients</p>
         </div>
         <div className="flex gap-2">
-          {(summary || metrics.length > 0) && (
+          {auditMode === 'account' && (summary || metrics.length > 0) && (
             <button className="btn-secondary" onClick={exportPDF}><Download size={13}/> Export PDF</button>
           )}
-          <button className="btn-primary" onClick={run} disabled={running || !clientId}><Play size={13}/>{running ? 'Analysing...' : 'Run audit'}</button>
+          {auditMode === 'account' && (
+            <button className="btn-primary" onClick={run} disabled={running || !clientId}><Play size={13}/>{running ? 'Analysing...' : 'Run audit'}</button>
+          )}
+          {auditMode === 'market' && (
+            <button className="btn-primary" onClick={runMarketAudit} disabled={marketRunning || !clientId}>
+              <Globe size={13}/>{marketRunning ? (strategyRunning ? 'Building strategy...' : 'Researching market...') : 'Run market audit'}
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div><label className="block text-xs text-gray-500 mb-1.5">Client</label>
-          <select className="select" value={clientId} onChange={e => setClientId(e.target.value)}>
-            <option value="">Select client...</option>
-            {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-        </div>
-        <div><label className="block text-xs text-gray-500 mb-1.5">Platform</label>
-          <div className="flex gap-2">
-            {['google','meta'].map(p => <button key={p} onClick={() => setPlatform(p)} className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${platform===p ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}>{p==='google'?'Google Ads':'Meta Ads'}</button>)}
-          </div>
-        </div>
-        <div><label className="block text-xs text-gray-500 mb-1.5">Date range</label>
-          <select className="select" value={dateRange} onChange={e => setDateRange(e.target.value)}>
-            {['Last 30 days','Last 60 days','Last 90 days','This year'].map(d => <option key={d}>{d}</option>)}
-          </select>
-        </div>
+      {/* Mode toggle */}
+      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
+        <button
+          onClick={() => setAuditMode('account')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${auditMode === 'account' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          <BarChart2 size={14}/> Account audit
+        </button>
+        <button
+          onClick={() => setAuditMode('market')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${auditMode === 'market' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+        >
+          <Globe size={14}/> Market audit
+          <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold">New to paid ads</span>
+        </button>
       </div>
 
-      <div className={`card border-dashed p-8 text-center cursor-pointer mb-2 ${dragOver ? 'border-gray-400 bg-gray-50' : 'hover:border-gray-300'}`}
-        onClick={() => document.getElementById('audit-input').click()}
-        onDragOver={e => { e.preventDefault(); setDragOver(true) }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)) }}>
-        <Upload size={22} className="text-gray-300 mx-auto mb-2"/>
-        <p className="text-sm font-medium text-gray-600 mb-1">Drop your {platform==='google'?'Google Ads':'Meta Ads'} CSV export here</p>
-        <p className="text-xs text-gray-400">{platform==='google'?'Google Ads → Reports → Campaigns → Download':'Meta Ads Manager → Campaigns → Export'}</p>
-        <input id="audit-input" type="file" accept=".csv" className="hidden" onChange={e => addFiles(Array.from(e.target.files))}/>
+      {/* Client selector — shared */}
+      <div className="card p-4 mb-4">
+        <label className="block text-xs text-gray-500 mb-1.5">Client</label>
+        <select className="select max-w-xs" value={clientId} onChange={e => setClientId(e.target.value)}>
+          <option value="">Select client...</option>
+          {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
       </div>
 
-      {error && <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3">{error}</div>}
-
-      {files.length > 0 && (
-        <div className="flex gap-2 flex-wrap mb-4">
-          {files.map(f => <div key={f.name} className="flex items-center gap-2 text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5"><FileText size={12} className="text-gray-400"/>{f.name}<button onClick={() => setFiles(files.filter(x => x.name !== f.name))} className="text-gray-400 hover:text-red-500"><X size={12}/></button></div>)}
-        </div>
-      )}
-
-      {metrics.length > 0 && (
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          {metrics.map(m => (
-            <div key={m.label} className={`card p-4 ${sBg[m.status]||''}`}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-medium text-gray-500">{m.label}</p>
-                {sIcon(m.status)}
+      {/* ── ACCOUNT AUDIT MODE ── */}
+      {auditMode === 'account' && (
+        <>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div><label className="block text-xs text-gray-500 mb-1.5">Platform</label>
+              <div className="flex gap-2">
+                {['google','meta'].map(p => <button key={p} onClick={() => setPlatform(p)} className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${platform===p ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}>{p==='google'?'Google Ads':'Meta Ads'}</button>)}
               </div>
-              <p className="text-xl font-semibold text-gray-900">{m.value}</p>
-              <p className="text-xs text-gray-400 mt-1">{m.bench}</p>
             </div>
-          ))}
-        </div>
+            <div><label className="block text-xs text-gray-500 mb-1.5">Date range</label>
+              <select className="select" value={dateRange} onChange={e => setDateRange(e.target.value)}>
+                {['Last 30 days','Last 60 days','Last 90 days','This year'].map(d => <option key={d}>{d}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className={`card border-dashed p-8 text-center cursor-pointer mb-2 ${dragOver ? 'border-gray-400 bg-gray-50' : 'hover:border-gray-300'}`}
+            onClick={() => document.getElementById('audit-input').click()}
+            onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)) }}>
+            <Upload size={22} className="text-gray-300 mx-auto mb-2"/>
+            <p className="text-sm font-medium text-gray-600 mb-1">Drop your {platform==='google'?'Google Ads':'Meta Ads'} CSV export here</p>
+            <p className="text-xs text-gray-400">{platform==='google'?'Google Ads → Reports → Campaigns → Download':'Meta Ads Manager → Campaigns → Export'}</p>
+            <input id="audit-input" type="file" accept=".csv" className="hidden" onChange={e => addFiles(Array.from(e.target.files))}/>
+          </div>
+
+          {error && <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3">{error}</div>}
+
+          {files.length > 0 && (
+            <div className="flex gap-2 flex-wrap mb-4">
+              {files.map(f => <div key={f.name} className="flex items-center gap-2 text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5"><FileText size={12} className="text-gray-400"/>{f.name}<button onClick={() => setFiles(files.filter(x => x.name !== f.name))} className="text-gray-400 hover:text-red-500"><X size={12}/></button></div>)}
+            </div>
+          )}
+
+          {metrics.length > 0 && (
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {metrics.map(m => (
+                <div key={m.label} className={`card p-4 ${sBg[m.status]||''}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-medium text-gray-500">{m.label}</p>
+                    {sIcon(m.status)}
+                  </div>
+                  <p className="text-xl font-semibold text-gray-900">{m.value}</p>
+                  <p className="text-xs text-gray-400 mt-1">{m.bench}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {campaigns.filter(c => c.roas > 0).length > 0 && (
+            <div className="card p-4 mb-4">
+              <p className="text-xs font-medium text-gray-500 mb-4">ROAS by campaign</p>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={campaigns.filter(c => c.roas > 0)}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+                  <XAxis dataKey="name" tick={{fontSize:11,fill:'#9ca3af'}}/>
+                  <YAxis tick={{fontSize:11,fill:'#9ca3af'}} tickFormatter={v=>v+'x'}/>
+                  <Tooltip formatter={v=>[parseFloat(v).toFixed(2)+'x','ROAS']}/>
+                  <Bar dataKey="roas" fill="#1a1a2e" radius={[3,3,0,0]}/>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {(summary || running) && (
+            <div className="card p-5 mb-4">
+              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3">AI Analysis</p>
+              {running && !summary && <div className="flex gap-1.5 mb-2">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}</div>}
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{summary}</p>
+            </div>
+          )}
+
+          {recos.length > 0 && (
+            <div className="mb-4">
+              <p className="text-sm font-medium text-gray-900 mb-3">Prioritised recommendations</p>
+              <div className="space-y-2">
+                {recos.map((r,i) => (
+                  <div key={i} className="card p-4 flex gap-3">
+                    <div className="w-6 h-6 rounded-full bg-gray-900 text-yellow-400 text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">{i+1}</div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 mb-1">{r.title}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed">{r.desc}</p>
+                      <span className={`inline-block mt-2 text-[10px] font-medium px-2 py-0.5 rounded-full ${r.impact==='High'?'bg-green-50 text-green-700':'bg-amber-50 text-amber-700'}`}>{r.impact} impact</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {pastAudits.length > 0 && (
+            <div className="mt-6"><p className="text-sm font-medium text-gray-900 mb-3">Past audits</p>
+              <div className="space-y-2">
+                {pastAudits.map(a => <div key={a.id} className="card px-4 py-3 flex items-center justify-between"><div><p className="text-sm text-gray-700">{a.platform==='google'?'Google Ads':'Meta Ads'} · {a.date_range}</p><p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p></div><button className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-2 py-1" onClick={()=>{if(a.summary)setSummary(a.summary);if(a.metrics_json)setMetrics(a.metrics_json);if(a.recommendations_json)setRecos(a.recommendations_json)}}>View</button></div>)}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
-      {campaigns.filter(c => c.roas > 0).length > 0 && (
-        <div className="card p-4 mb-4">
-          <p className="text-xs font-medium text-gray-500 mb-4">ROAS by campaign</p>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={campaigns.filter(c => c.roas > 0)}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
-              <XAxis dataKey="name" tick={{fontSize:11,fill:'#9ca3af'}}/>
-              <YAxis tick={{fontSize:11,fill:'#9ca3af'}} tickFormatter={v=>v+'x'}/>
-              <Tooltip formatter={v=>[parseFloat(v).toFixed(2)+'x','ROAS']}/>
-              <Bar dataKey="roas" fill="#1a1a2e" radius={[3,3,0,0]}/>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* ── MARKET AUDIT MODE ── */}
+      {auditMode === 'market' && (
+        <>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block text-xs text-gray-500 mb-1.5">Target market</label>
+              <select className="select" value={market} onChange={e => setMarket(e.target.value)}>
+                {MARKETS.map(m => <option key={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
 
-      {(summary || running) && (
-        <div className="card p-5 mb-4">
-          <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3">AI Analysis</p>
-          {running && !summary && <div className="flex gap-1.5 mb-2">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}</div>}
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{summary}</p>
-        </div>
-      )}
+          <div className="mb-6">
+            <label className="block text-xs text-gray-500 mb-3">Competitors (up to 3)</label>
+            <div className="space-y-3">
+              {competitors.map((c, i) => (
+                <div key={i} className="grid grid-cols-2 gap-3">
+                  <input
+                    className="input"
+                    placeholder={`Competitor ${i + 1} name`}
+                    value={c.name}
+                    onChange={e => updateCompetitor(i, 'name', e.target.value)}
+                  />
+                  <input
+                    className="input"
+                    placeholder="Website (e.g. competitor.com)"
+                    value={c.website}
+                    onChange={e => updateCompetitor(i, 'website', e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
 
-      {recos.length > 0 && (
-        <div className="mb-4">
-          <p className="text-sm font-medium text-gray-900 mb-3">Prioritised recommendations</p>
-          <div className="space-y-2">
-            {recos.map((r,i) => (
-              <div key={i} className="card p-4 flex gap-3">
-                <div className="w-6 h-6 rounded-full bg-gray-900 text-yellow-400 text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">{i+1}</div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900 mb-1">{r.title}</p>
-                  <p className="text-xs text-gray-500 leading-relaxed">{r.desc}</p>
-                  <span className={`inline-block mt-2 text-[10px] font-medium px-2 py-0.5 rounded-full ${r.impact==='High'?'bg-green-50 text-green-700':'bg-amber-50 text-amber-700'}`}>{r.impact} impact</span>
+          {error && <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">{error}</div>}
+
+          {/* Loading state */}
+          {marketRunning && (
+            <div className="card p-6 mb-4">
+              <div className="flex gap-1.5 items-center mb-2">
+                {[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}
+                <span className="text-xs text-gray-400 ml-2">
+                  {strategyRunning ? 'Market audit complete — building strategy...' : 'Researching market benchmarks and competitor activity...'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Market audit results */}
+          {mr && !marketRunning && (
+            <div className="space-y-4">
+
+              {/* Header */}
+              <div className="card p-4 bg-blue-50 border-blue-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900">Market audit — {mr.market}</p>
+                    <p className="text-xs text-blue-600 mt-0.5">{clients.find(c=>c.id===clientId)?.industry} · {mr.competitors?.filter(c=>c.name).length} competitors analysed</p>
+                  </div>
+                  {mr.created_at && <p className="text-xs text-blue-400">{new Date(mr.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {pastAudits.length > 0 && (
-        <div className="mt-6"><p className="text-sm font-medium text-gray-900 mb-3">Past audits</p>
-          <div className="space-y-2">
-            {pastAudits.map(a => <div key={a.id} className="card px-4 py-3 flex items-center justify-between"><div><p className="text-sm text-gray-700">{a.platform==='google'?'Google Ads':'Meta Ads'} · {a.date_range}</p><p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p></div><button className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-2 py-1" onClick={()=>{if(a.summary)setSummary(a.summary);if(a.metrics_json)setMetrics(a.metrics_json);if(a.recommendations_json)setRecos(a.recommendations_json)}}>View</button></div>)}
-          </div>
-        </div>
+              {/* Summary */}
+              {mr.summary && (
+                <div className="card p-5">
+                  <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3">Market overview</p>
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{mr.summary}</p>
+                </div>
+              )}
+
+              {/* Benchmarks */}
+              {mr.benchmarks && (
+                <div className="card p-4">
+                  <p className="text-xs font-medium text-gray-500 mb-4">Industry benchmarks · {mr.market}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Google benchmarks */}
+                    {mr.benchmarks.google && (
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Google Ads</p>
+                        <div className="space-y-2">
+                          {Object.entries(mr.benchmarks.google).map(([k,v]) => (
+                            <div key={k} className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                              <span className="text-xs text-gray-500 capitalize">{k.replace(/_/g,' ')}</span>
+                              <span className="text-xs font-semibold text-gray-900">{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* Meta benchmarks */}
+                    {mr.benchmarks.meta && (
+                      <div>
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Meta Ads</p>
+                        <div className="space-y-2">
+                          {Object.entries(mr.benchmarks.meta).map(([k,v]) => (
+                            <div key={k} className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                              <span className="text-xs text-gray-500 capitalize">{k.replace(/_/g,' ')}</span>
+                              <span className="text-xs font-semibold text-gray-900">{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {mr.benchmarks.platform_notes && (
+                    <p className="text-xs text-gray-400 mt-3 italic border-t border-gray-50 pt-3">{mr.benchmarks.platform_notes}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Competitor intel */}
+              {mr.competitor_intel?.length > 0 && (
+                <div className="card p-4">
+                  <p className="text-xs font-medium text-gray-500 mb-3">Competitor ad intelligence</p>
+                  <div className="space-y-2">
+                    {mr.competitor_intel.map((comp, i) => (
+                      <div key={i} className="border border-gray-100 rounded-lg overflow-hidden">
+                        <button
+                          className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50"
+                          onClick={() => setExpandedCompetitor(expandedCompetitor === i ? null : i)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                              {comp.name?.slice(0,2).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{comp.name}</p>
+                              {comp.website && <p className="text-[10px] text-gray-400">{comp.website.replace(/https?:\/\//,'')}</p>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${comp.ad_presence === 'Strong' ? 'bg-red-50 text-red-700' : comp.ad_presence === 'Moderate' ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}`}>
+                              {comp.ad_presence} presence
+                            </span>
+                            {expandedCompetitor === i ? <ChevronUp size={14} className="text-gray-400"/> : <ChevronDown size={14} className="text-gray-400"/>}
+                          </div>
+                        </button>
+                        {expandedCompetitor === i && (
+                          <div className="border-t border-gray-100 p-3 space-y-3">
+                            {comp.estimated_spend && <div><p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Est. monthly spend</p><p className="text-sm text-gray-700">{comp.estimated_spend}</p></div>}
+                            {comp.platforms?.length > 0 && <div><p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Active platforms</p><div className="flex gap-1 flex-wrap">{comp.platforms.map((p,j)=><span key={j} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{p}</span>)}</div></div>}
+                            {comp.ad_angles?.length > 0 && <div><p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Ad angles</p><div className="flex gap-1 flex-wrap">{comp.ad_angles.map((a,j)=><span key={j} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{a}</span>)}</div></div>}
+                            {comp.likely_keywords?.length > 0 && <div><p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Likely keywords</p><div className="flex gap-1 flex-wrap">{comp.likely_keywords.map((k,j)=><span key={j} className="text-xs bg-gray-50 border border-gray-200 text-gray-600 px-2 py-0.5 rounded font-mono">{k}</span>)}</div></div>}
+                            {comp.gap && <div className="bg-green-50 rounded-lg p-2 mt-1"><p className="text-[10px] font-semibold text-green-700 uppercase tracking-wider mb-0.5">Your opportunity</p><p className="text-xs text-green-700">{comp.gap}</p></div>}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Opportunities */}
+              {mr.opportunities?.length > 0 && (
+                <div className="card p-4">
+                  <p className="text-xs font-medium text-gray-500 mb-3">Market opportunities</p>
+                  <div className="space-y-2">
+                    {mr.opportunities.map((o, i) => (
+                      <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="w-5 h-5 rounded-full bg-gray-900 text-yellow-400 text-[10px] font-semibold flex items-center justify-center shrink-0 mt-0.5">{i+1}</div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 mb-0.5">{o.title}</p>
+                          <p className="text-xs text-gray-500 leading-relaxed">{o.detail}</p>
+                          {o.action && <p className="text-xs text-blue-600 mt-1 font-medium">→ {o.action}</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Auto-generated strategy */}
+              {strategyRunning && (
+                <div className="card p-4">
+                  <div className="flex gap-1.5 items-center">
+                    {[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}
+                    <span className="text-xs text-gray-400 ml-2">Building launch strategy from market data...</span>
+                  </div>
+                </div>
+              )}
+
+              {marketStrategy && (
+                <div className="card p-4 border-l-4 border-gray-900">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold text-gray-900">Launch strategy</p>
+                    <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Auto-generated from market audit</span>
+                  </div>
+
+                  {marketStrategy.executive_summary && (
+                    <p className="text-sm text-gray-600 leading-relaxed mb-4">{marketStrategy.executive_summary}</p>
+                  )}
+
+                  {marketStrategy.expected_kpis && (
+                    <div className="mb-4">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Expected KPIs</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          ['ROAS', marketStrategy.expected_kpis.expected_roas],
+                          ['CPA', marketStrategy.expected_kpis.expected_cpa],
+                          ['Monthly conversions', marketStrategy.expected_kpis.monthly_conversions],
+                          ['Impressions/mo', marketStrategy.expected_kpis.monthly_impressions],
+                          ['Clicks/mo', marketStrategy.expected_kpis.monthly_clicks],
+                        ].filter(([,v])=>v).map(([l,v]) => (
+                          <div key={l} className="bg-gray-50 rounded-lg p-2.5">
+                            <p className="text-[10px] text-gray-400 mb-1">{l}</p>
+                            <p className="text-sm font-semibold text-gray-900">{v}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {marketStrategy.channel_strategy?.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Channel strategy</p>
+                      <div className="space-y-2">
+                        {marketStrategy.channel_strategy.map((ch, i) => (
+                          <div key={i} className="bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-gray-900">{ch.channel}</span>
+                              <span className="text-xs font-semibold text-gray-700">AED {(ch.monthly_budget||0).toLocaleString()}/mo · {ch.budget_percentage}%</span>
+                            </div>
+                            <p className="text-xs text-gray-500">{ch.rationale}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {marketStrategy.quick_wins?.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Launch quick wins</p>
+                      <div className="space-y-1.5">
+                        {marketStrategy.quick_wins.map((w, i) => (
+                          <div key={i} className="flex gap-2 items-start">
+                            {w.timeline && <span className="text-[10px] bg-gray-900 text-yellow-400 px-1.5 py-0.5 rounded font-semibold shrink-0 mt-0.5">{w.timeline}</span>}
+                            <div>
+                              <p className="text-xs text-gray-700">{typeof w === 'object' ? w.action : w}</p>
+                              {w.expected_impact && <p className="text-[10px] text-green-600 mt-0.5">→ {w.expected_impact}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Past market audits */}
+              {pastMarketAudits.length > 1 && (
+                <div className="mt-2">
+                  <p className="text-sm font-medium text-gray-900 mb-2">Past market audits</p>
+                  <div className="space-y-2">
+                    {pastMarketAudits.slice(1).map(a => (
+                      <div key={a.id} className="card px-4 py-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-gray-700">{a.market} · {a.competitors?.filter(c=>c.name).length} competitors</p>
+                          <p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>
+                        </div>
+                        <button className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-2 py-1" onClick={() => {
+                          setMarketResult(a)
+                          if (a.strategy_json) setMarketStrategy(a.strategy_json)
+                        }}>View</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   )
