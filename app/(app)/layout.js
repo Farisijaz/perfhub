@@ -52,12 +52,15 @@ function SidebarInner() {
   }
 
   const isLocked = (agent) => {
+    // Only lock if a client is selected AND the previous step is not done
     if (!clientId || !agent || agent === 'audit') return false
     const order = ['audit', 'competitor', 'strategy', 'creative', 'reports']
     const idx = order.indexOf(agent)
     if (idx <= 0) return false
-    // locked if previous step not done
-    return !stepDone(order[idx - 1])
+    // Only lock if client has been selected for a while (progress has loaded)
+    // and the previous step is definitively not done
+    const prevDone = stepDone(order[idx - 1])
+    return !prevDone && Object.keys(progress).length > 0
   }
 
   const dotColor = (agent) => {

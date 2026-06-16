@@ -15,9 +15,7 @@ export default function LoginPage() {
 
   async function submit(e) {
     e.preventDefault()
-    setError('')
-    setSuccess('')
-    setLoading(true)
+    setError(''); setSuccess(''); setLoading(true)
     try {
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -38,66 +36,87 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm">
-          <h1 className="text-lg font-semibold text-gray-900 mb-1">
-            {mode === 'signin' ? 'Sign in to PerfHub' : 'Create your account'}
+    <div style={{minHeight:'100vh',background:'#080c18',display:'flex',alignItems:'center',justifyContent:'center',padding:'16px',fontFamily:'Inter,-apple-system,sans-serif'}}>
+      <div style={{width:'100%',maxWidth:'380px'}}>
+
+        {/* Logo */}
+        <div style={{display:'flex',alignItems:'center',gap:'10px',justifyContent:'center',marginBottom:'32px'}}>
+          <div style={{width:'36px',height:'36px',borderRadius:'10px',background:'linear-gradient(135deg,#e8c97e,#c9a84c)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'14px',fontWeight:'700',color:'#0a0e1a'}}>P</div>
+          <div>
+            <div style={{fontSize:'16px',fontWeight:'600',color:'#e8eaf6',lineHeight:'1'}}>PerfHub</div>
+            <div style={{fontSize:'10px',color:'#4a5580',marginTop:'2px',letterSpacing:'0.05em',textTransform:'uppercase'}}>AI Performance OS</div>
+          </div>
+        </div>
+
+        {/* Card */}
+        <div style={{background:'#0d1120',border:'1px solid #1a2035',borderRadius:'16px',padding:'32px'}}>
+          <h1 style={{fontSize:'18px',fontWeight:'600',color:'#e8eaf6',margin:'0 0 4px'}}>
+            {mode === 'signin' ? 'Sign in' : 'Create account'}
           </h1>
-          <p className="text-sm text-gray-400 mb-6">Performance marketing, powered by AI</p>
+          <p style={{fontSize:'13px',color:'#4a5580',margin:'0 0 24px'}}>Performance marketing, powered by AI</p>
+
           {error && (
-            <div className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg p-3 mb-4">
+            <div style={{fontSize:'13px',color:'#fca5a5',background:'#2a0f0f',border:'1px solid #3a1515',borderRadius:'8px',padding:'10px 14px',marginBottom:'16px'}}>
               {error}
             </div>
           )}
           {success && (
-            <div className="text-sm text-green-700 bg-green-50 border border-green-100 rounded-lg p-3 mb-4">
+            <div style={{fontSize:'13px',color:'#86efac',background:'#14301a',border:'1px solid #1a4025',borderRadius:'8px',padding:'10px 14px',marginBottom:'16px'}}>
               {success}
             </div>
           )}
-          <form onSubmit={submit} className="space-y-3">
-            <div>
-              <label className="block text-xs text-gray-500 mb-1.5">Email</label>
+
+          <form onSubmit={submit}>
+            <div style={{marginBottom:'14px'}}>
+              <label style={{display:'block',fontSize:'11px',color:'#4a5580',marginBottom:'6px',fontWeight:'500'}}>Email</label>
               <input
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                 type="email"
                 placeholder="you@agency.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
+                style={{width:'100%',padding:'9px 12px',fontSize:'13px',background:'#111827',border:'1px solid #1e2a48',borderRadius:'8px',color:'#e8eaf6',outline:'none',boxSizing:'border-box'}}
+                onFocus={e => e.target.style.borderColor='#4a5580'}
+                onBlur={e => e.target.style.borderColor='#1e2a48'}
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-500 mb-1.5">Password</label>
+            <div style={{marginBottom:'20px'}}>
+              <label style={{display:'block',fontSize:'11px',color:'#4a5580',marginBottom:'6px',fontWeight:'500'}}>Password</label>
               <input
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
                 minLength={6}
+                style={{width:'100%',padding:'9px 12px',fontSize:'13px',background:'#111827',border:'1px solid #1e2a48',borderRadius:'8px',color:'#e8eaf6',outline:'none',boxSizing:'border-box'}}
+                onFocus={e => e.target.style.borderColor='#4a5580'}
+                onBlur={e => e.target.style.borderColor='#1e2a48'}
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gray-900 text-white text-sm font-medium py-2 px-4 rounded-lg hover:bg-gray-800 disabled:opacity-50 mt-1"
+              style={{width:'100%',background:'#e8c97e',color:'#0a0e1a',fontSize:'13px',fontWeight:'600',padding:'10px',borderRadius:'8px',border:'none',cursor:loading?'not-allowed':'pointer',opacity:loading?0.6:1}}
             >
               {loading ? 'Please wait...' : mode === 'signin' ? 'Sign in' : 'Create account'}
             </button>
           </form>
-          <p className="text-center text-xs text-gray-400 mt-4">
+
+          <p style={{textAlign:'center',fontSize:'12px',color:'#3a4468',marginTop:'20px'}}>
             {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
             <button
-              className="text-gray-600 underline"
+              style={{color:'#8090c0',background:'none',border:'none',cursor:'pointer',fontSize:'12px',textDecoration:'underline'}}
               onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError('') }}
             >
               {mode === 'signin' ? 'Sign up' : 'Sign in'}
             </button>
           </p>
         </div>
-        <p className="text-center text-xs text-gray-400 mt-4">PerfHub · {new Date().getFullYear()}</p>
+
+        <p style={{textAlign:'center',fontSize:'11px',color:'#2e3858',marginTop:'20px'}}>
+          PerfHub · {new Date().getFullYear()}
+        </p>
       </div>
     </div>
   )

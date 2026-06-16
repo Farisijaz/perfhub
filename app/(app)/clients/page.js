@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, Search, BarChart3, Eye, Map, X, Check, AlertCircle, FileText } from 'lucide-react'
 
 const INDUSTRIES = ['F&B / Restaurant','E-commerce','Real Estate','Healthcare','Education','Automotive','Finance','Retail','Travel & Hospitality','Technology','Fashion','Beauty & Wellness','Other']
-const COLORS = [['bg-purple-50','text-purple-800'],['bg-teal-50','text-teal-800'],['bg-blue-50','text-blue-800'],['bg-orange-50','text-orange-800'],['bg-pink-50','text-pink-800']]
+const COLORS = [['bg-surface-tertiary','text-brand-gold'],['bg-surface-tertiary','text-status-green'],['bg-surface-tertiary','text-status-blue'],['bg-surface-tertiary','text-text-primary'],['bg-surface-tertiary','text-text-secondary']]
 const STATUS = { active: ['badge-green','Active'], pending: ['badge-amber','Pending'], paused: ['badge-gray','Paused'] }
 
 function isValidUrl(str) {
@@ -62,8 +62,8 @@ export default function ClientsPage() {
     <div className="p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Clients</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Manage all your performance marketing clients</p>
+          <h1 className="page-title">Clients</h1>
+          <p className="text-sm text-text-dim mt-0.5">Manage all your performance marketing clients</p>
         </div>
         <button className="btn-primary" onClick={() => setModal(true)}><Plus size={14}/> Add client</button>
       </div>
@@ -74,12 +74,12 @@ export default function ClientsPage() {
           ['Active', clients.filter(c=>c.status==='active').length],
           ['Monthly spend', totalBudget ? 'AED ' + totalBudget.toLocaleString() : '—']
         ].map(([l,v]) => (
-          <div key={l} className="card p-4"><p className="text-xs text-gray-400 mb-1">{l}</p><p className="text-2xl font-medium text-gray-900">{v}</p></div>
+          <div key={l} className="card p-4"><p className="text-xs text-text-dim mb-1">{l}</p><p className="text-2xl font-medium text-text-primary">{v}</p></div>
         ))}
       </div>
 
       <div className="relative max-w-xs mb-4">
-        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
+        <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim"/>
         <input className="input pl-8" placeholder="Search clients..." value={search} onChange={e=>setSearch(e.target.value)}/>
       </div>
 
@@ -99,11 +99,11 @@ export default function ClientsPage() {
                   </div>
                   <span className={badgeCls}>{label}</span>
                 </div>
-                <p className="text-sm font-medium text-gray-900 mb-0.5">{c.name}</p>
-                <p className="text-xs text-gray-400 mb-3">{c.industry||'No industry'}{c.website ? ` · ${c.website.replace(/https?:\/\//,'')}` : ''}</p>
-                <div className="grid grid-cols-2 gap-2 py-3 border-t border-gray-50 mb-3">
-                  <div><p className="text-[10px] text-gray-400 mb-0.5">Monthly budget</p><p className="text-sm font-medium">{c.monthly_budget ? `AED ${c.monthly_budget.toLocaleString()}` : '—'}</p></div>
-                  <div><p className="text-[10px] text-gray-400 mb-0.5">Platforms</p><p className="text-sm font-medium">{platforms.length ? platforms.join(', ') : '—'}</p></div>
+                <p className="text-sm font-medium text-text-primary mb-0.5">{c.name}</p>
+                <p className="text-xs text-text-dim mb-3">{c.industry||'No industry'}{c.website ? ` · ${c.website.replace(/https?:\/\//,'')}` : ''}</p>
+                <div className="grid grid-cols-2 gap-2 py-3 border-t border-surface-border mb-3">
+                  <div><p className="text-[10px] text-text-dim mb-0.5">Monthly budget</p><p className="text-sm font-medium">{c.monthly_budget ? `AED ${c.monthly_budget.toLocaleString()}` : '—'}</p></div>
+                  <div><p className="text-[10px] text-text-dim mb-0.5">Platforms</p><p className="text-sm font-medium">{platforms.length ? platforms.join(', ') : '—'}</p></div>
                 </div>
                 <div className="flex gap-2 mb-2">
                   {[['Audit', BarChart3, '/audit'],['Competitors', Eye, '/competitors'],['Strategy', Map, '/strategy']].map(([lbl, Icon, href]) => (
@@ -112,51 +112,51 @@ export default function ClientsPage() {
                     </button>
                   ))}
                 </div>
-                <button className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-800 transition-colors" onClick={()=>router.push(`/clients/${c.id}`)}>
+                <button className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-lg border border-surface-border-light text-text-muted hover:bg-surface-secondary hover:text-text-primary transition-colors" onClick={()=>router.push(`/clients/${c.id}`)}>
                   <FileText size={12}/> Full report
                 </button>
               </div>
             )
           })}
-          <button className="card p-4 border-dashed flex flex-col items-center justify-center min-h-[200px] text-gray-400 hover:text-gray-600 hover:border-gray-300 transition-colors cursor-pointer" onClick={()=>setModal(true)}>
+          <button className="card p-4 border-dashed flex flex-col items-center justify-center min-h-[200px] text-text-dim hover:text-text-secondary hover:border-surface-border-light transition-colors cursor-pointer" onClick={()=>setModal(true)}>
             <Plus size={20} className="mb-2"/><span className="text-sm">Add new client</span>
           </button>
         </div>
       )}
 
       {modal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl border border-gray-100 w-full max-w-md">
-            <div className="flex items-center justify-between p-5 border-b border-gray-50">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-surface-primary rounded-xl border border-surface-border w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b border-surface-border">
               <h2 className="text-sm font-semibold">Add new client</h2>
-              <button onClick={()=>{setModal(false);setUrlError('');setError('')}} className="text-gray-400 hover:text-gray-600"><X size={16}/></button>
+              <button onClick={()=>{setModal(false);setUrlError('');setError('')}} className="text-text-dim hover:text-text-secondary"><X size={16}/></button>
             </div>
             <form onSubmit={save} className="p-5 space-y-3 max-h-[70vh] overflow-y-auto">
               {error && <div className="flex items-center gap-2 text-xs text-red-700 bg-red-50 rounded-lg p-3"><AlertCircle size={13}/>{error}</div>}
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs text-gray-500 mb-1">Name *</label><input className="input" placeholder="Client name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required/></div>
-                <div><label className="block text-xs text-gray-500 mb-1">Industry</label><select className="select" value={form.industry} onChange={e=>setForm({...form,industry:e.target.value})}><option value="">Select...</option>{INDUSTRIES.map(i=><option key={i}>{i}</option>)}</select></div>
+                <div><label className="block text-xs text-text-muted mb-1">Name *</label><input className="input" placeholder="Client name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} required/></div>
+                <div><label className="block text-xs text-text-muted mb-1">Industry</label><select className="select" value={form.industry} onChange={e=>setForm({...form,industry:e.target.value})}><option value="">Select...</option>{INDUSTRIES.map(i=><option key={i}>{i}</option>)}</select></div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Website</label>
+                  <label className="block text-xs text-text-muted mb-1">Website</label>
                   <input className={`input ${urlError ? 'border-red-300' : ''}`} placeholder="https://example.com" value={form.website} onChange={e=>{setForm({...form,website:e.target.value});validateWebsite(e.target.value)}} onBlur={e=>validateWebsite(e.target.value)}/>
                   {urlError && <p className="text-[10px] text-red-500 mt-1">{urlError}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Monthly budget (AED)</label>
+                  <label className="block text-xs text-text-muted mb-1">Monthly budget (AED)</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">AED</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-text-dim">AED</span>
                     <input className="input pl-10" type="number" placeholder="10,000" value={form.monthly_budget} onChange={e=>setForm({...form,monthly_budget:e.target.value})}/>
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="block text-xs text-gray-500 mb-1">Meta Ad Account ID</label><input className="input" placeholder="act_123456789" value={form.meta_ad_account_id} onChange={e=>setForm({...form,meta_ad_account_id:e.target.value})}/></div>
-                <div><label className="block text-xs text-gray-500 mb-1">Status</label><select className="select" value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option value="active">Active</option><option value="pending">Pending</option><option value="paused">Paused</option></select></div>
+                <div><label className="block text-xs text-text-muted mb-1">Meta Ad Account ID</label><input className="input" placeholder="act_123456789" value={form.meta_ad_account_id} onChange={e=>setForm({...form,meta_ad_account_id:e.target.value})}/></div>
+                <div><label className="block text-xs text-text-muted mb-1">Status</label><select className="select" value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option value="active">Active</option><option value="pending">Pending</option><option value="paused">Paused</option></select></div>
               </div>
             </form>
-            <div className="flex justify-end gap-2 p-4 border-t border-gray-50">
+            <div className="flex justify-end gap-2 p-4 border-t border-surface-border">
               <button className="btn-secondary" onClick={()=>{setModal(false);setUrlError('');setError('')}}>Cancel</button>
               <button className="btn-primary" onClick={save} disabled={saving || !!urlError}><Check size={13}/>{saving?'Saving...':'Save client'}</button>
             </div>

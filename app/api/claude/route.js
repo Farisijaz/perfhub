@@ -52,7 +52,8 @@ End with one bottom-line sentence.`
       case 'competitor': {
         const { clientName, industry, competitorName, competitorUrl } = payload
         const text = await callClaudeWithSearch({
-          systemPrompt: `You are a senior competitive intelligence analyst at a performance marketing agency in Dubai. Search the web to find real current information about this competitor — their website, active ads, social presence, recent campaigns, news, and market positioning. Always respond with valid JSON only, no other text, no markdown.`,
+          maxTokens: 8000,
+          systemPrompt: `You are a senior competitive intelligence analyst at a performance marketing agency in Dubai. Search the web to find real current information about this competitor. CRITICAL: Your ENTIRE response must be a single valid JSON object only. No text before or after. No markdown. No backticks. Start with { end with }.`,
           userPrompt: `Analyse "${competitorName}" (${competitorUrl || 'no URL'}) as a competitor to ${clientName} in the ${industry || 'digital marketing'} industry in UAE/Middle East.
 
 Search for: "${competitorName} ads campaigns marketing ${new Date().getFullYear()}" and "${competitorName} digital advertising social media presence" and "${competitorUrl || competitorName} Google Ads Meta Ads"
@@ -90,7 +91,8 @@ Respond with ONLY this JSON, no markdown, no backticks:
         const { clientName, industry, goal, budget, duration, channels, currentRoas } = payload
         const hasTrackingIssue = currentRoas === 0 || currentRoas === '0' || currentRoas === '0.00'
         const text = await callClaudeWithSearch({
-          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency in Dubai. Before building the strategy, search for current market conditions, competitor activity, and platform benchmark data for this industry and market. Create comprehensive, highly actionable strategies grounded in real current data. Always respond with valid JSON only, no markdown, no backticks.`,
+          maxTokens: 10000,
+          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency in Dubai. Search for current market conditions before building the strategy. CRITICAL: Your ENTIRE response must be a single valid JSON object only. No text before or after. No markdown. No backticks. Start with { end with }.`,
           userPrompt: `Create a detailed performance marketing strategy for ${clientName} (${industry}).\n\nSearch for current data: "${industry} digital marketing benchmarks ${market || 'UAE'} ${new Date().getFullYear()}" and "${industry} Google Ads Meta Ads average CPC ROAS ${new Date().getFullYear()}"
 Goal: ${goal} | Budget: AED ${budget}/month | Duration: ${duration} | Channels: ${channels.join(', ')} | Market: UAE
 ${hasTrackingIssue ? 'IMPORTANT: Conversion value tracking appears broken (ROAS showing 0). Include tracking fix as the highest priority action.' : ''}
@@ -277,7 +279,8 @@ Respond with ONLY this JSON:
         const { clientName, industry, website, market, competitors, budget } = payload
         const competitorList = competitors.map((c, i) => `${i+1}. ${c.name}${c.website ? ' (' + c.website + ')' : ''}`).join('\n')
         const text = await callClaudeWithSearch({
-          systemPrompt: `You are a senior performance marketing analyst specialising in paid advertising across global markets. Search the web extensively for real, current data on this market and industry before responding — including actual benchmark reports, competitor ad activity, platform statistics, and market intelligence. Always respond with valid JSON only, no markdown, no backticks.`,
+          maxTokens: 12000,
+          systemPrompt: `You are a senior performance marketing analyst specialising in paid advertising across global markets. Search the web extensively for real, current data on this market and industry before responding. CRITICAL: Your ENTIRE response must be a single valid JSON object only. Do not include any text before or after the JSON. Do not use markdown. Do not use backticks. Start your response with { and end with }.`,
           userPrompt: `Conduct a market audit for a NEW business entering paid advertising for the first time.\n\nSearch for these before responding:\n1. "${industry} Google Ads benchmarks ${market} ${new Date().getFullYear()} CPC CPM ROAS"\n2. "${industry} Meta Ads benchmarks ${market} ${new Date().getFullYear()}"\n3. "${competitors.map(c=>c.name).join(' OR ')} digital advertising campaigns ${new Date().getFullYear()}"\n4. "paid advertising market ${market} ${industry} trends ${new Date().getFullYear()}"
 
 Client: ${clientName}
@@ -352,7 +355,8 @@ Respond with ONLY this JSON:
       case 'market_strategy': {
         const { clientName, industry, website, market, budget, competitors, benchmarks, competitorIntel, opportunities, summary } = payload
         const text = await callClaudeWithSearch({
-          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency. Search the web for the latest platform benchmark data, audience insights, and market conditions for this industry and target market before building the strategy. Be specific, actionable, and grounded in current real-world data. Always respond with valid JSON only, no markdown, no backticks.`,
+          maxTokens: 12000,
+          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency. Search the web for the latest platform benchmark data before building the strategy. CRITICAL: Your ENTIRE response must be a single valid JSON object only. Do not include any text before or after the JSON. Do not use markdown. Do not use backticks. Start your response with { and end with }.`,
           userPrompt: `Build a paid advertising LAUNCH strategy for a new business with no existing ad presence.\n\nSearch for current data: "${industry} paid advertising launch strategy ${market} ${new Date().getFullYear()}" and "Google Ads ${industry} ${market} average CPC conversion rate ${new Date().getFullYear()}"
 
 Client: ${clientName}
