@@ -51,33 +51,12 @@ function AuditPageInner() {
   const [marketStrategy, setMarketStrategy] = useState(null)
   const [pastMarketAudits, setPastMarketAudits] = useState([])
   const [expandedCompetitor, setExpandedCompetitor] = useState(null)
-  const [progress, setProgress] = useState({})
   const [strategyRunning, setStrategyRunning] = useState(false)
 
   useEffect(() => {
     const supabase = createBrowserClient()
     supabase.from('clients').select('*').order('name').then(({ data }) => setClients(data || []))
   }, [])
-
-  useEffect(() => {
-    if (!clientId) { setProgress({}); return }
-    const supabase = createBrowserClient()
-    Promise.all([
-      supabase.from('audits').select('id').eq('client_id', clientId).limit(1),
-      supabase.from('market_audits').select('id').eq('client_id', clientId).limit(1),
-      supabase.from('competitor_analyses').select('id').eq('client_id', clientId).limit(1),
-      supabase.from('strategies').select('id').eq('client_id', clientId).limit(1),
-      supabase.from('client_creatives').select('id').eq('client_id', clientId).limit(1),
-    ]).then(([audit, market, comp, strat, creative]) => {
-      setProgress({
-        audit: (audit.data?.length > 0) || (market.data?.length > 0),
-        competitor: comp.data?.length > 0,
-        strategy: strat.data?.length > 0,
-        creative: creative.data?.length > 0,
-        reports: strat.data?.length > 0,
-      })
-    })
-  }, [clientId])
 
   useEffect(() => {
     if (!clientId) return
@@ -263,7 +242,6 @@ function AuditPageInner() {
       await supabase.from('audits').insert([{ client_id: clientId, platform, date_range: dateRange, summary: data.summary, metrics_json: metrics, recommendations_json: data.recommendations, raw_data_json: parsedMetrics ? { totals: parsedMetrics.totals, ctr: parsedMetrics.ctr, cpc: parsedMetrics.cpc, cpm: parsedMetrics.cpm, cpa: parsedMetrics.cpa, roas: parsedMetrics.roas } : null }])
       const { data: past } = await supabase.from('audits').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(5)
       setPastAudits(past || [])
-      setProgress(prev => ({ ...prev, audit: true }))
     } catch (e) { setSummary('Error: ' + e.message) }
     setRunning(false)
   }
@@ -305,12 +283,11 @@ function AuditPageInner() {
   const mr = marketResult
 
   return (
-    <div>
-      <StepTracker current="audit" progress={progress} clientId={clientId}/>
-      <div className="page-header">
+    <div className="p-6">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="page-title">Audit</h1>
-          <p className="page-sub">Agent 1 — account performance audit or market intelligence for new clients</p>
+          <h1 className="text-lg font-semibold text-gray-900">Audit</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Agent 1 — account performance audit or market intelligence for new clients</p>
         </div>
         <div className="flex gap-2">
           {auditMode === 'account' && (summary || metrics.length > 0) && (
@@ -326,7 +303,6 @@ function AuditPageInner() {
           )}
         </div>
       </div>
-      <div className="p-6">
 
       {/* Mode toggle */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
@@ -445,10 +421,6 @@ function AuditPageInner() {
             </div>
           )}
 
-          {!running && summary && (
-            <NextBar current="audit" clientId={clientId} label="Account audit complete"/>
-          )}
-
           {pastAudits.length > 0 && (
             <div className="mt-6"><p className="text-sm font-medium text-gray-900 mb-3">Past audits</p>
               <div className="space-y-2">
@@ -496,9 +468,7 @@ function AuditPageInner() {
           {error && <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">{error}</div>}
 
           {/* Loading state */}
-          {marketRunning && (
-            <ThinkingBar message={strategyRunning ? 'Market audit complete — building launch strategy...' : 'Searching web for live market benchmarks and competitor data...'}/>
-          )}
+          {marketRunning && <ThinkingBar message={strategyRunning ? 'Market audit complete — building launch strategy...' : 'Searching web for live market benchmarks and competitor data...'}/> }
 
           {/* Market audit results */}
           {mr && !marketRunning && (
@@ -625,9 +595,7 @@ function AuditPageInner() {
               )}
 
               {/* Auto-generated strategy */}
-              {strategyRunning && (
-                <ThinkingBar message="Building launch strategy from market intelligence..."/>
-              )}
+              {strategyRunning && <ThinkingBar message="Building launch strategy from market intelligence..."/> }
 
               {marketStrategy && (
                 <div className="card p-4 border-l-4 border-gray-900">
@@ -696,10 +664,6 @@ function AuditPageInner() {
                 </div>
               )}
 
-              {!marketRunning && !strategyRunning && marketStrategy && (
-                <NextBar current="audit" clientId={clientId} label="Market audit and strategy complete"/>
-              )}
-
               {/* Past market audits */}
               {pastMarketAudits.length > 1 && (
                 <div className="mt-2">
@@ -724,7 +688,6 @@ function AuditPageInner() {
           )}
         </>
       )}
-    </div>
     </div>
   )
 }

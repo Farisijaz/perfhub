@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
-import { StepTracker, NextBar, ThinkingBar, LockedState } from '@/components/StepComponents'
+import { StepTracker, NextBar, ThinkingBar } from '@/components/StepComponents'
 import { Play, Download, ChevronDown, ChevronUp, Info, AlertTriangle } from 'lucide-react'
 
 const CHANNELS = ['Google Search','Google Display','Google Shopping','YouTube','Meta (Facebook/Instagram)','TikTok','LinkedIn','Snapchat','SEO','Email Marketing']
@@ -18,7 +18,6 @@ function StrategyPageInner() {
   const [channels, setChannels] = useState(['Google Search','Meta (Facebook/Instagram)'])
   const [running, setRunning] = useState(false)
   const [progress, setProgress] = useState({})
-  const [isLocked, setIsLocked] = useState(false)
   const [strategy, setStrategy] = useState(null)
   const [expanded, setExpanded] = useState('channels')
   const [pastStrategies, setPastStrategies] = useState([])
@@ -31,7 +30,7 @@ function StrategyPageInner() {
   }, [])
 
   useEffect(() => {
-    if (!clientId) { setProgress({}); setIsLocked(false); return }
+    if (!clientId) { setProgress({}); return }
     const supabase = createBrowserClient()
     Promise.all([
       supabase.from('audits').select('id').eq('client_id', clientId).limit(1),
@@ -40,15 +39,13 @@ function StrategyPageInner() {
       supabase.from('strategies').select('id').eq('client_id', clientId).limit(1),
       supabase.from('client_creatives').select('id').eq('client_id', clientId).limit(1),
     ]).then(([audit, market, comp, strat, creative]) => {
-      const compDone = comp.data?.length > 0
       setProgress({
         audit: (audit.data?.length > 0) || (market.data?.length > 0),
-        competitor: compDone,
+        competitor: comp.data?.length > 0,
         strategy: strat.data?.length > 0,
         creative: creative.data?.length > 0,
         reports: strat.data?.length > 0,
       })
-      setIsLocked(!compDone)
     })
   }, [clientId])
 
@@ -245,10 +242,11 @@ function StrategyPageInner() {
   return (
     <div>
       <StepTracker current="strategy" progress={progress} clientId={clientId}/>
-      <div className="page-header">
+      <div className="p-6">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="page-title">Strategy & media plan</h1>
-          <p className="page-sub">Agent 3 — AI-generated strategy, channel plan, budget split and KPIs</p>
+          <h1 className="text-lg font-semibold text-gray-900">Strategy & media plan</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Agent 3 — AI-generated strategy, channel plan, budget split and KPIs</p>
         </div>
         <div className="flex gap-2">
           {strategy && <button className="btn-secondary" onClick={exportPPT}><Download size={13}/> Export PPT</button>}
@@ -464,6 +462,7 @@ function StrategyPageInner() {
       {!running && strategy && (
         <NextBar current="strategy" clientId={clientId} label="Strategy complete — ready to generate ad creative"/>
       )}
+      </div>
     </div>
   )
 }

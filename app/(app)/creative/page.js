@@ -2,7 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
 import { useSearchParams } from 'next/navigation'
-import { StepTracker, NextBar, ThinkingBar, LockedState } from '@/components/StepComponents'
+import { StepTracker, NextBar, ThinkingBar } from '@/components/StepComponents'
 import { Play, Copy, Check, ChevronDown, ChevronUp, ExternalLink, Layout, Shield, CheckCircle } from 'lucide-react'
 
 const AD_TYPES = ['Search ads (Google)','Responsive display ads','Meta feed ads','Meta story ads','YouTube bumper ads','LinkedIn sponsored content']
@@ -40,34 +40,11 @@ function CreativePageInner() {
   const [savedAt, setSavedAt] = useState(null)
   const [loadingExisting, setLoadingExisting] = useState(false)
   const [progress, setProgress] = useState({})
-  const [isLocked, setIsLocked] = useState(false)
 
   useEffect(() => {
     const supabase = createBrowserClient()
     supabase.from('clients').select('*').order('name').then(({ data }) => setClients(data || []))
   }, [])
-
-  useEffect(() => {
-    if (!clientId) { setProgress({}); setIsLocked(false); return }
-    const supabase = createBrowserClient()
-    Promise.all([
-      supabase.from('audits').select('id').eq('client_id', clientId).limit(1),
-      supabase.from('market_audits').select('id').eq('client_id', clientId).limit(1),
-      supabase.from('competitor_analyses').select('id').eq('client_id', clientId).limit(1),
-      supabase.from('strategies').select('id').eq('client_id', clientId).limit(1),
-      supabase.from('client_creatives').select('id').eq('client_id', clientId).limit(1),
-    ]).then(([audit, market, comp, strat, creative]) => {
-      const stratDone = strat.data?.length > 0
-      setProgress({
-        audit: (audit.data?.length > 0) || (market.data?.length > 0),
-        competitor: comp.data?.length > 0,
-        strategy: stratDone,
-        creative: creative.data?.length > 0,
-        reports: stratDone,
-      })
-      setIsLocked(!stratDone)
-    })
-  }, [clientId])
 
   // Load most recent saved creative + tracking when client changes
   useEffect(() => {
@@ -188,7 +165,6 @@ function CreativePageInner() {
       if (adsData.success) {
         setAds(adsData.creative)
         await saveToSupabase({ creativeData: adsData.creative })
-        setProgress(prev => ({ ...prev, creative: true }))
       }
     } catch (e) { alert('Error: ' + e.message) }
     setRunning(false)
@@ -261,15 +237,13 @@ function CreativePageInner() {
   return (
     <div>
       <StepTracker current="creative" progress={progress} clientId={clientId}/>
-      <div className="page-header">
+      <div className="p-6">
+      <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="page-title">Ad creative & tracking</h1>
-          <p className="page-sub">Agent 4 — AI ad copy, creative briefs and full tracking setup guide</p>
+          <h1 className="text-lg font-semibold text-gray-900">Ad creative & tracking</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Agent 4 — AI ad copy, creative briefs and full tracking setup guide</p>
         </div>
       </div>
-      <div className="p-6">
-      {isLocked && clientId && <LockedState message="Complete Strategy first to unlock Ad creative."/>}
-      {(!isLocked || !clientId) && <>
 
       {/* Client selector */}
       <div className="card p-4 mb-4">
@@ -480,10 +454,10 @@ function CreativePageInner() {
           )}
         </div>
       )}
-    </div>
-      {!running && ads && (
+      {!running && ads && activeTab === 'ads' && (
         <NextBar current="creative" clientId={clientId} label="Ad creative complete — ready to export report"/>
       )}
+      </div>
     </div>
   )
 }

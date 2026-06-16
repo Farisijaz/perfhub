@@ -2,12 +2,7 @@
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
 import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { StepTracker } from '@/components/StepComponents'
-
-import { useState, useEffect } from 'react'
-import { createBrowserClient } from '@/lib/supabase-browser'
-import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function ReportsPage() {
@@ -59,7 +54,9 @@ export default function ReportsPage() {
   const sIcon = s => s==='good' ? <TrendingUp size={12} className="text-green-600"/> : s==='bad' ? <TrendingDown size={12} className="text-red-600"/> : <Minus size={12} className="text-amber-600"/>
 
   return (
-    <div className="p-6">
+    <div>
+      <StepTracker current="reports" progress={progress} clientId={clientId}/>
+      <div className="p-6">
       <div className="flex items-start justify-between mb-6">
         <div><h1 className="text-lg font-semibold text-gray-900">Reporting dashboard</h1><p className="text-sm text-gray-400 mt-0.5">Agent 5 — live performance overview and AI insights per client</p></div>
         <div className="flex gap-2">
