@@ -40,11 +40,19 @@ function CreativePageInner() {
   const [savedAt, setSavedAt] = useState(null)
   const [loadingExisting, setLoadingExisting] = useState(false)
   const [progress, setProgress] = useState({})
+  const [market, setMarket] = useState('UAE')
 
   useEffect(() => {
     const supabase = createBrowserClient()
     supabase.from('clients').select('*').order('name').then(({ data }) => setClients(data || []))
   }, [])
+
+  useEffect(() => {
+    if (!clientId) return
+    const supabase = createBrowserClient()
+    supabase.from('market_audits').select('market').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).single()
+      .then(({ data }) => { if (data?.market) setMarket(data.market) })
+  }, [clientId])
 
   // Load most recent saved creative + tracking when client changes
   useEffect(() => {
@@ -159,7 +167,7 @@ function CreativePageInner() {
       const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent: 'creative', payload: { clientName: client.name, industry: client.industry, website: client.website, adType, objective, product, usp, cta, tone } })
+        body: JSON.stringify({ agent: 'creative', payload: { clientName: client.name, industry: client.industry, website: client.website, adType, objective, product, usp, cta, tone, market } })
       })
       const adsData = await res.json()
       if (adsData.success) {
