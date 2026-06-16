@@ -464,9 +464,6 @@ function StrategyPageInner() {
       {!running && strategy && (
         <NextBar current="strategy" clientId={clientId} label="Strategy complete — ready to generate ad creative"/>
       )}
-      </>
-      }
-      </div>
     </div>
   )
 }

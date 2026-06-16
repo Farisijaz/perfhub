@@ -484,9 +484,6 @@ function CreativePageInner() {
       {!running && ads && (
         <NextBar current="creative" clientId={clientId} label="Ad creative complete — ready to export report"/>
       )}
-      </>
-      }
-      </div>
     </div>
   )
 }

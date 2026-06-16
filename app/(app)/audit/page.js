@@ -725,7 +725,6 @@ function AuditPageInner() {
         </>
       )}
     </div>
-      </div>
     </div>
   )
 }
