@@ -255,7 +255,7 @@ function CreativePageInner() {
           </select>
           {loadingExisting && <span className="text-xs text-text-secondary">Loading saved output...</span>}
           {savedAt && !loadingExisting && (
-            <span className="flex items-center gap-1 text-xs text-green-600">
+            <span className="flex items-center gap-1 text-xs text-status-green">
               <CheckCircle size={11}/> Saved to report · {new Date(savedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
             </span>
           )}

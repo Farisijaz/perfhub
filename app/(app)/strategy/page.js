@@ -230,10 +230,10 @@ function StrategyPageInner() {
   const Section = ({ id, title, children }) => (
     <div className="card overflow-hidden mb-3">
       <button className="w-full flex items-center justify-between p-4 text-left" onClick={() => setExpanded(expanded === id ? null : id)}>
-        <p className="text-sm font-medium text-gray-900">{title}</p>
-        {expanded === id ? <ChevronUp size={15} className="text-gray-400"/> : <ChevronDown size={15} className="text-gray-400"/>}
+        <p className="text-sm font-semibold text-text-primary">{title}</p>
+        {expanded === id ? <ChevronUp size={15} className="text-text-secondary"/> : <ChevronDown size={15} className="text-text-secondary"/>}
       </button>
-      {expanded === id && <div className="border-t border-gray-50 p-4">{children}</div>}
+      {expanded === id && <div className="border-t border-surface-border p-4">{children}</div>}
     </div>
   )
 
@@ -245,8 +245,8 @@ function StrategyPageInner() {
       <div className="p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Strategy & media plan</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Agent 3 — AI-generated strategy, channel plan, budget split and KPIs</p>
+          <h1 className="text-xl font-bold text-text-primary tracking-tight">Strategy & media plan</h1>
+          <p className="text-sm text-text-secondary mt-0.5">Agent 3 — AI-generated strategy, channel plan, budget split and KPIs</p>
         </div>
         <div className="flex gap-2">
           {strategy && <button className="btn-secondary" onClick={exportPPT}><Download size={13}/> Export PPT</button>}
@@ -255,23 +255,23 @@ function StrategyPageInner() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-4">
-        <div><label className="block text-xs text-gray-500 mb-1.5">Client</label>
+        <div><label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">Client</label>
           <select className="select" value={clientId} onChange={e => setClientId(e.target.value)}>
             <option value="">Select client...</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <div><label className="block text-xs text-gray-500 mb-1.5">Primary goal</label>
+        <div><label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">Primary goal</label>
           <select className="select" value={goal} onChange={e => setGoal(e.target.value)}>{GOALS.map(g => <option key={g}>{g}</option>)}</select>
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1.5">Monthly budget (AED)</label>
+          <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">Monthly budget (AED)</label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">AED</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-text-secondary">AED</span>
             <input className="input pl-10" type="number" placeholder="10000" value={budget} onChange={e => setBudget(e.target.value)}/>
           </div>
         </div>
-        <div><label className="block text-xs text-gray-500 mb-1.5">Duration</label>
+        <div><label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1.5">Duration</label>
           <select className="select" value={duration} onChange={e => setDuration(e.target.value)}>
             {['1 month','3 months','6 months','12 months'].map(d => <option key={d}>{d}</option>)}
           </select>
@@ -279,16 +279,16 @@ function StrategyPageInner() {
       </div>
 
       {dataSources.length > 0 && (
-        <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
-          <Info size={13} className="text-blue-500 shrink-0"/>
-          <p className="text-xs text-blue-700">Strategy will be based on: <strong>{dataSources.join(' · ')}</strong></p>
+        <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg" style={{background:"#0f1e35",border:"1px solid #1e3a5f"}}">
+          <Info size={13} className="text-status-blue shrink-0"/>
+          <p className="text-xs text-status-blue">Strategy will be based on: <strong>{dataSources.join(' · ')}</strong></p>
         </div>
       )}
 
       <div className="card p-4 mb-6">
-        <p className="text-xs font-medium text-gray-500 mb-3">Channels to include</p>
+        <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-3">Channels to include</p>
         <div className="flex flex-wrap gap-2">
-          {CHANNELS.map(ch => <button key={ch} onClick={() => setChannels(prev => prev.includes(ch) ? prev.filter(c=>c!==ch) : [...prev, ch])} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${channels.includes(ch) ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}>{ch}</button>)}
+          {CHANNELS.map(ch => <button key={ch} onClick={() => setChannels(prev => prev.includes(ch) ? prev.filter(c=>c!==ch) : [...prev, ch])} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${channels.includes(ch) ? 'bg-surface-tertiary text-brand-gold border-brand-gold/40' : 'bg-surface-secondary text-text-muted border-surface-border-light'}`}>{ch}</button>)}
         </div>
       </div>
 
@@ -297,28 +297,28 @@ function StrategyPageInner() {
       {strategy && (
         <>
           {strategy.tracking_alert && (
-            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-xl mb-4">
-              <AlertTriangle size={16} className="text-red-500 shrink-0 mt-0.5"/>
+            <div className="flex items-start gap-3 p-4 rounded-xl" style={{background:"#2a0f0f",border:"1px solid rgba(239,68,68,0.2)"}} mb-4">
+              <AlertTriangle size={16} className="text-status-red shrink-0 mt-0.5"/>
               <div>
-                <p className="text-sm font-medium text-red-700 mb-0.5">Tracking issue detected</p>
-                <p className="text-xs text-red-600">{strategy.tracking_alert}</p>
+                <p className="text-sm font-semibold text-status-red mb-0.5">Tracking issue detected</p>
+                <p className="text-xs text-status-red">{strategy.tracking_alert}</p>
               </div>
             </div>
           )}
 
-          <div className="card p-4 mb-4 bg-gray-50">
+          <div className="card p-5 mb-4">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">Executive summary</p>
-              {dataSources.length > 0 && <span className="text-[10px] text-gray-400">Based on: {dataSources.join(' · ')}</span>}
+              <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Executive summary</p>
+              {dataSources.length > 0 && <span className="text-[10px] text-text-secondary">Based on: {dataSources.join(' · ')}</span>}
             </div>
-            <p className="text-sm text-gray-700 leading-relaxed">{strategy.executive_summary}</p>
-            {strategy.market_opportunity && <p className="text-sm text-gray-500 leading-relaxed mt-2">{strategy.market_opportunity}</p>}
+            <p className="text-sm text-text-primary leading-relaxed">{strategy.executive_summary}</p>
+            {strategy.market_opportunity && <p className="text-sm text-text-secondary leading-relaxed mt-2">{strategy.market_opportunity}</p>}
           </div>
 
           {strategy.expected_kpis && (
             <div className="grid grid-cols-3 gap-3 mb-4">
               {[['Expected ROAS', strategy.expected_kpis.expected_roas],['Expected CPA', strategy.expected_kpis.expected_cpa],['Monthly conversions', strategy.expected_kpis.monthly_conversions],['Monthly impressions', strategy.expected_kpis.monthly_impressions],['Monthly clicks', strategy.expected_kpis.monthly_clicks],['Expected CPL', strategy.expected_kpis.expected_cpl]].filter(([,v])=>v).map(([l,v]) => (
-                <div key={l} className="card p-3"><p className="text-xs text-gray-400 mb-1">{l}</p><p className="text-lg font-medium text-gray-900">{v}</p></div>
+                <div key={l} className="card p-4" style={{background:'#111827'}}><p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">{l}</p><p className="text-2xl font-bold text-brand-gold">{v}</p></div>
               ))}
             </div>
           )}
@@ -326,38 +326,38 @@ function StrategyPageInner() {
           <Section id="channels" title="Channel strategy & budget split">
             <div className="space-y-4">
               {(strategy.channel_strategy||[]).map((ch, i) => (
-                <div key={i} className="border border-gray-100 rounded-lg overflow-hidden">
-                  <div className="flex items-center justify-between p-3 bg-gray-50">
+                <div key={i} className="rounded-lg overflow-hidden" style={{border:"1px solid #1e2a48"}}">
+                  <div className="flex items-center justify-between p-3" style={{background:"#111827"}}">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900">{ch.channel}</p>
+                      <p className="text-sm font-bold text-text-primary">{ch.channel}</p>
                       <span className={roleColor[ch.role]||'badge-gray'}>{ch.role}</span>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">AED {(ch.monthly_budget||0).toLocaleString()}/mo</p>
-                      <p className="text-xs text-gray-400">{ch.budget_percentage}% of budget</p>
+                      <p className="text-sm font-bold text-brand-gold">AED {(ch.monthly_budget||0).toLocaleString()}/mo</p>
+                      <p className="text-xs text-text-secondary">{ch.budget_percentage}% of budget</p>
                     </div>
                   </div>
                   <div className="p-3">
-                    {ch.bid_strategy && <p className="text-xs text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg mb-2 font-medium">Bid strategy: {ch.bid_strategy}</p>}
-                    <p className="text-xs text-gray-500 mb-3">{ch.rationale}</p>
+                    {ch.bid_strategy && <p className="text-xs text-status-blue px-3 py-1.5 rounded-lg mb-2 font-semibold" style={{background:"#0f1e35"}}">Bid strategy: {ch.bid_strategy}</p>}
+                    <p className="text-xs text-text-secondary mb-3">{ch.rationale}</p>
                     {ch.budget_split?.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Budget split by campaign type</p>
+                        <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2">Budget split by campaign type</p>
                         <div className="space-y-1.5">
                           {ch.budget_split.map((b, j) => (
                             <div key={j} className="flex items-center gap-3">
-                              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div className="h-full bg-gray-900 rounded-full" style={{width: `${b.percentage}%`}}/>
+                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:"#1a2035"}}">
+                                <div className="h-full bg-brand-gold rounded-full" style={{width: `${b.percentage}%`}}/>
                               </div>
-                              <span className="text-xs text-gray-600 w-40 shrink-0">{b.campaign_type}</span>
-                              <span className="text-xs font-medium text-gray-900 w-24 text-right shrink-0">AED {(b.budget_aed||0).toLocaleString()}</span>
-                              <span className="text-xs text-gray-400 w-8 text-right shrink-0">{b.percentage}%</span>
+                              <span className="text-xs text-text-primary w-40 shrink-0">{b.campaign_type}</span>
+                              <span className="text-xs font-bold text-text-primary w-24 text-right shrink-0">AED {(b.budget_aed||0).toLocaleString()}</span>
+                              <span className="text-xs text-text-secondary w-8 text-right shrink-0">{b.percentage}%</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
-                    {ch.benchmarks && <div className="flex gap-3 flex-wrap mt-3">{Object.entries(ch.benchmarks).map(([k,v]) => <span key={k} className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded">{k.toUpperCase()}: {v}</span>)}</div>}
+                    {ch.benchmarks && <div className="flex gap-3 flex-wrap mt-3">{Object.entries(ch.benchmarks).map(([k,v]) => <span key={k} className="text-xs text-text-secondary px-2 py-0.5 rounded" style={{background:"#111827"}}>{k.toUpperCase()}: {v}</span>)}</div>}
                   </div>
                 </div>
               ))}
@@ -368,28 +368,28 @@ function StrategyPageInner() {
             <Section id="keywords" title="Keyword strategy">
               <div className="space-y-4">
                 <div>
-                  <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Branded keywords ({strategy.keyword_strategy.branded_keywords?.length||0})</p>
+                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2">Branded keywords ({strategy.keyword_strategy.branded_keywords?.length||0})</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {(strategy.keyword_strategy.branded_keywords||[]).map((k,i) => <span key={i} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">{k}</span>)}
+                    {(strategy.keyword_strategy.branded_keywords||[]).map((k,i) => <span key={i} className="text-xs bg-status-blue-bg text-status-blue px-2.5 py-1 rounded-lg">{k}</span>)}
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Non-brand keywords ({strategy.keyword_strategy.non_brand_keywords?.length||0})</p>
+                  <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2">Non-brand keywords ({strategy.keyword_strategy.non_brand_keywords?.length||0})</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {(strategy.keyword_strategy.non_brand_keywords||[]).map((k,i) => <span key={i} className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-lg">{k}</span>)}
+                    {(strategy.keyword_strategy.non_brand_keywords||[]).map((k,i) => <span key={i} className="text-xs bg-status-green-bg text-status-green px-2.5 py-1 rounded-lg">{k}</span>)}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Account-level negatives ({strategy.keyword_strategy.account_level_negatives?.length||0})</p>
+                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2">Account-level negatives ({strategy.keyword_strategy.account_level_negatives?.length||0})</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {(strategy.keyword_strategy.account_level_negatives||[]).map((k,i) => <span key={i} className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-lg">-{k}</span>)}
+                      {(strategy.keyword_strategy.account_level_negatives||[]).map((k,i) => <span key={i} className="text-xs bg-status-red-bg text-status-red px-2.5 py-1 rounded-lg">-{k}</span>)}
                     </div>
                   </div>
                   <div>
-                    <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-2">Campaign-level negatives ({strategy.keyword_strategy.campaign_level_negatives?.length||0})</p>
+                    <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mb-2">Campaign-level negatives ({strategy.keyword_strategy.campaign_level_negatives?.length||0})</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {(strategy.keyword_strategy.campaign_level_negatives||[]).map((k,i) => <span key={i} className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded-lg">-{k}</span>)}
+                      {(strategy.keyword_strategy.campaign_level_negatives||[]).map((k,i) => <span key={i} className="text-xs bg-status-red-bg text-status-red px-2.5 py-1 rounded-lg">-{k}</span>)}
                     </div>
                   </div>
                 </div>
@@ -400,8 +400,8 @@ function StrategyPageInner() {
           <Section id="audience" title="Target audience">
             {strategy.target_audience && (
               <div className="space-y-3">
-                {[['Primary', strategy.target_audience.primary],['Secondary', strategy.target_audience.secondary],['Demographics', strategy.target_audience.demographics]].filter(([,v])=>v).map(([l,v]) => <div key={l}><p className="text-xs text-gray-400 mb-1">{l}</p><p className="text-sm text-gray-700">{v}</p></div>)}
-                {strategy.target_audience.interests?.length > 0 && <div><p className="text-xs text-gray-400 mb-2">Interests</p><div className="flex flex-wrap gap-2">{strategy.target_audience.interests.map((t,i) => <span key={i} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">{t}</span>)}</div></div>}
+                {[['Primary', strategy.target_audience.primary],['Secondary', strategy.target_audience.secondary],['Demographics', strategy.target_audience.demographics]].filter(([,v])=>v).map(([l,v]) => <div key={l}><p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">{l}</p><p className="text-sm text-text-primary">{v}</p></div>)}
+                {strategy.target_audience.interests?.length > 0 && <div><p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Interests</p><div className="flex flex-wrap gap-2">{strategy.target_audience.interests.map((t,i) => <span key={i} className="text-xs bg-status-blue-bg text-status-blue px-2.5 py-1 rounded-lg">{t}</span>)}</div></div>}
               </div>
             )}
           </Section>
@@ -409,7 +409,7 @@ function StrategyPageInner() {
           <Section id="mediaplan" title="Media plan timeline">
             <div className="space-y-3">
               {Object.entries(strategy.media_plan||{}).map(([month, desc]) => (
-                <div key={month} className="flex gap-3"><div className="w-16 shrink-0 text-xs font-medium text-gray-500 capitalize pt-0.5">{month.replace('month','Month ')}</div><p className="text-sm text-gray-700">{desc}</p></div>
+                <div key={month} className="flex gap-3"><div className="w-16 shrink-0 text-xs font-semibold text-brand-gold capitalize pt-0.5">{month.replace('month','Month ')}</div><p className="text-sm text-text-primary">{desc}</p></div>
               ))}
             </div>
           </Section>
@@ -417,9 +417,9 @@ function StrategyPageInner() {
           <Section id="creative" title="Creative direction">
             {strategy.creative_direction && (
               <div className="space-y-3">
-                <div><p className="text-xs text-gray-400 mb-1">Tone</p><p className="text-sm text-gray-700">{strategy.creative_direction.tone}</p></div>
-                {strategy.creative_direction.messaging_pillars?.length > 0 && <div><p className="text-xs text-gray-400 mb-2">Messaging pillars</p><div className="space-y-1">{strategy.creative_direction.messaging_pillars.map((p,i) => <div key={i} className="text-sm text-gray-700 flex gap-2"><span className="text-gray-300">—</span>{p}</div>)}</div></div>}
-                {strategy.creative_direction.formats?.length > 0 && <div><p className="text-xs text-gray-400 mb-2">Ad formats</p><div className="flex flex-wrap gap-2">{strategy.creative_direction.formats.map((f,i) => <span key={i} className="text-xs bg-gray-50 border border-gray-200 text-gray-600 px-2 py-1 rounded">{f}</span>)}</div></div>}
+                <div><p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">Tone</p><p className="text-sm text-text-primary">{strategy.creative_direction.tone}</p></div>
+                {strategy.creative_direction.messaging_pillars?.length > 0 && <div><p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Messaging pillars</p><div className="space-y-1">{strategy.creative_direction.messaging_pillars.map((p,i) => <div key={i} className="text-sm text-text-primary flex gap-2"><span className="text-text-muted">—</span>{p}</div>)}</div></div>}
+                {strategy.creative_direction.formats?.length > 0 && <div><p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">Ad formats</p><div className="flex flex-wrap gap-2">{strategy.creative_direction.formats.map((f,i) => <span key={i} className="text-xs bg-surface-secondary text-text-primary px-2.5 py-1 rounded-lg border border-surface-border-light">{f}</span>)}</div></div>}
               </div>
             )}
           </Section>
@@ -432,11 +432,11 @@ function StrategyPageInner() {
                   const timeline = typeof w === 'object' ? w.timeline : null
                   const impact = typeof w === 'object' ? w.expected_impact : null
                   return (
-                    <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                      {timeline && <span className="text-[10px] font-medium bg-gray-900 text-white px-2 py-1 rounded shrink-0 h-fit">{timeline}</span>}
+                    <div key={i} className="flex gap-3 p-3 rounded-lg" style={{background:"#111827",border:"1px solid #1e2a48"}}">
+                      {timeline && <span className="text-[10px] font-semibold bg-surface-tertiary text-brand-gold px-2 py-1 rounded shrink-0 h-fit">{timeline}</span>}
                       <div>
-                        <p className="text-sm text-gray-700">{action}</p>
-                        {impact && <p className="text-xs text-green-600 mt-1">→ {impact}</p>}
+                        <p className="text-sm text-text-primary">{action}</p>
+                        {impact && <p className="text-xs text-status-green mt-1">→ {impact}</p>}
                       </div>
                     </div>
                   )
@@ -448,12 +448,12 @@ function StrategyPageInner() {
       )}
 
       {pastStrategies.length > 0 && (
-        <div className="mt-6"><p className="text-sm font-medium text-gray-900 mb-3">Past strategies</p>
+        <div className="mt-6"><p className="text-sm font-bold text-text-primary mb-3">Past strategies</p>
           <div className="space-y-2">
             {pastStrategies.map(s => (
               <div key={s.id} className="card px-4 py-3 flex items-center justify-between">
-                <div><p className="text-sm text-gray-700">{s.title}</p><p className="text-xs text-gray-400">{new Date(s.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p></div>
-                <button className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-2 py-1" onClick={() => s.strategy_json && setStrategy(s.strategy_json)}>View</button>
+                <div><p className="text-sm text-text-primary">{s.title}</p><p className="text-xs text-text-secondary">{new Date(s.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p></div>
+                <button className="text-xs text-text-secondary hover:text-text-primary border border-surface-border-light rounded px-2 py-1" onClick={() => s.strategy_json && setStrategy(s.strategy_json)}>View</button>
               </div>
             ))}
           </div>
@@ -469,7 +469,7 @@ function StrategyPageInner() {
 
 export default function StrategyPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading...</div>}>
+    <Suspense fallback={<div className="p-6 text-sm text-text-secondary">Loading...</div>}>
       <StrategyPageInner />
     </Suspense>
   )

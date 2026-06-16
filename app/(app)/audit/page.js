@@ -453,7 +453,7 @@ function AuditPageInner() {
             </div>
           </div>
 
-          <div className={`card border-dashed p-8 text-center cursor-pointer mb-2 ${dragOver ? 'border-gray-400 bg-surface-secondary' : 'hover:border-surface-border-light'}`}
+          <div className={`card border-dashed p-8 text-center cursor-pointer mb-2 ${dragOver ? 'border-brand-gold/40 bg-surface-secondary' : 'hover:border-surface-border-light'}`}
             onClick={() => document.getElementById('audit-input').click()}
             onDragOver={e => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
