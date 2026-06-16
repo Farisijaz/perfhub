@@ -17,6 +17,9 @@
   ::-webkit-scrollbar-track { background: #0d1120; }
   ::-webkit-scrollbar-thumb { background: #1e2a48; border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: #2e3858; }
+  ::placeholder { color: #4a5580; opacity: 1; }
+  :-ms-input-placeholder { color: #4a5580; }
+  ::-ms-input-placeholder { color: #4a5580; }
 }
 
 @layer components {
@@ -42,7 +45,7 @@
 
   /* ── Inputs ── */
   .input {
-    @apply w-full px-3 py-2 text-sm bg-surface-secondary border border-surface-border-light rounded-lg text-text-primary placeholder-text-dim outline-none focus:border-text-muted focus:bg-surface-tertiary transition-colors;
+    @apply w-full px-3 py-2 text-sm bg-surface-secondary border border-surface-border-light rounded-lg text-text-primary placeholder-text-muted outline-none focus:border-text-muted focus:bg-surface-tertiary transition-colors;
   }
   .select {
     @apply w-full px-3 py-2 text-sm bg-surface-secondary border border-surface-border-light rounded-lg text-text-primary outline-none focus:border-text-muted cursor-pointer appearance-none;

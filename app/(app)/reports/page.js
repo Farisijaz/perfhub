@@ -3,6 +3,12 @@ import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
 import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
+import { StepTracker } from '@/components/StepComponents'
+
+import { useState, useEffect } from 'react'
+import { createBrowserClient } from '@/lib/supabase-browser'
+import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function ReportsPage() {
   const [clients, setClients] = useState([])
@@ -139,6 +145,8 @@ export default function ReportsPage() {
           {audits.length === 0 && strategies.length === 0 && <div className="card p-12 text-center"><p className="text-sm text-gray-500 mb-1">No data yet for this client</p><p className="text-xs text-gray-400">Run an audit or build a strategy to start seeing data here</p></div>}
         </>
       )}
+    </div>
+      </div>
     </div>
   )
 }

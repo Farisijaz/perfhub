@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { extractRealRows, parseGoogleAds, parseMetaAds, autoDetectPlatform } from '@/lib/csvParser'
 import { Upload, Play, FileText, X, TrendingUp, TrendingDown, Minus, Download, Globe, BarChart2, ChevronDown, ChevronUp } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { StepTracker, NextBar, ThinkingBar } from '@/components/StepComponents'
 
 const MARKETS = [
   'UAE',
@@ -50,12 +51,33 @@ function AuditPageInner() {
   const [marketStrategy, setMarketStrategy] = useState(null)
   const [pastMarketAudits, setPastMarketAudits] = useState([])
   const [expandedCompetitor, setExpandedCompetitor] = useState(null)
+  const [progress, setProgress] = useState({})
   const [strategyRunning, setStrategyRunning] = useState(false)
 
   useEffect(() => {
     const supabase = createBrowserClient()
     supabase.from('clients').select('*').order('name').then(({ data }) => setClients(data || []))
   }, [])
+
+  useEffect(() => {
+    if (!clientId) { setProgress({}); return }
+    const supabase = createBrowserClient()
+    Promise.all([
+      supabase.from('audits').select('id').eq('client_id', clientId).limit(1),
+      supabase.from('market_audits').select('id').eq('client_id', clientId).limit(1),
+      supabase.from('competitor_analyses').select('id').eq('client_id', clientId).limit(1),
+      supabase.from('strategies').select('id').eq('client_id', clientId).limit(1),
+      supabase.from('client_creatives').select('id').eq('client_id', clientId).limit(1),
+    ]).then(([audit, market, comp, strat, creative]) => {
+      setProgress({
+        audit: (audit.data?.length > 0) || (market.data?.length > 0),
+        competitor: comp.data?.length > 0,
+        strategy: strat.data?.length > 0,
+        creative: creative.data?.length > 0,
+        reports: strat.data?.length > 0,
+      })
+    })
+  }, [clientId])
 
   useEffect(() => {
     if (!clientId) return
@@ -241,6 +263,7 @@ function AuditPageInner() {
       await supabase.from('audits').insert([{ client_id: clientId, platform, date_range: dateRange, summary: data.summary, metrics_json: metrics, recommendations_json: data.recommendations, raw_data_json: parsedMetrics ? { totals: parsedMetrics.totals, ctr: parsedMetrics.ctr, cpc: parsedMetrics.cpc, cpm: parsedMetrics.cpm, cpa: parsedMetrics.cpa, roas: parsedMetrics.roas } : null }])
       const { data: past } = await supabase.from('audits').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(5)
       setPastAudits(past || [])
+      setProgress(prev => ({ ...prev, audit: true }))
     } catch (e) { setSummary('Error: ' + e.message) }
     setRunning(false)
   }
@@ -282,11 +305,12 @@ function AuditPageInner() {
   const mr = marketResult
 
   return (
-    <div className="p-6">
-      <div className="flex items-start justify-between mb-6">
+    <div>
+      <StepTracker current="audit" progress={progress} clientId={clientId}/>
+      <div className="page-header">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Audit</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Agent 1 — account performance audit or market intelligence for new clients</p>
+          <h1 className="page-title">Audit</h1>
+          <p className="page-sub">Agent 1 — account performance audit or market intelligence for new clients</p>
         </div>
         <div className="flex gap-2">
           {auditMode === 'account' && (summary || metrics.length > 0) && (
@@ -302,6 +326,7 @@ function AuditPageInner() {
           )}
         </div>
       </div>
+      <div className="p-6">
 
       {/* Mode toggle */}
       <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
@@ -397,7 +422,7 @@ function AuditPageInner() {
           {(summary || running) && (
             <div className="card p-5 mb-4">
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3">AI Analysis</p>
-              {running && !summary && <div className="flex gap-1.5 mb-2">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}</div>}
+              {running && !summary && <ThinkingBar message="Searching web for live benchmarks and analysing account performance..."/>}
               <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{summary}</p>
             </div>
           )}
@@ -418,6 +443,10 @@ function AuditPageInner() {
                 ))}
               </div>
             </div>
+          )}
+
+          {!running && summary && (
+            <NextBar current="audit" clientId={clientId} label="Account audit complete"/>
           )}
 
           {pastAudits.length > 0 && (
@@ -468,14 +497,7 @@ function AuditPageInner() {
 
           {/* Loading state */}
           {marketRunning && (
-            <div className="card p-6 mb-4">
-              <div className="flex gap-1.5 items-center mb-2">
-                {[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}
-                <span className="text-xs text-gray-400 ml-2">
-                  {strategyRunning ? 'Market audit complete — building strategy...' : 'Researching market benchmarks and competitor activity...'}
-                </span>
-              </div>
-            </div>
+            <ThinkingBar message={strategyRunning ? 'Market audit complete — building launch strategy...' : 'Searching web for live market benchmarks and competitor data...'}/>
           )}
 
           {/* Market audit results */}
@@ -604,12 +626,7 @@ function AuditPageInner() {
 
               {/* Auto-generated strategy */}
               {strategyRunning && (
-                <div className="card p-4">
-                  <div className="flex gap-1.5 items-center">
-                    {[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}
-                    <span className="text-xs text-gray-400 ml-2">Building launch strategy from market data...</span>
-                  </div>
-                </div>
+                <ThinkingBar message="Building launch strategy from market intelligence..."/>
               )}
 
               {marketStrategy && (
@@ -679,6 +696,10 @@ function AuditPageInner() {
                 </div>
               )}
 
+              {!marketRunning && !strategyRunning && marketStrategy && (
+                <NextBar current="audit" clientId={clientId} label="Market audit and strategy complete"/>
+              )}
+
               {/* Past market audits */}
               {pastMarketAudits.length > 1 && (
                 <div className="mt-2">
@@ -703,6 +724,8 @@ function AuditPageInner() {
           )}
         </>
       )}
+    </div>
+      </div>
     </div>
   )
 }
