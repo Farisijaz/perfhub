@@ -279,7 +279,7 @@ function StrategyPageInner() {
       </div>
 
       {dataSources.length > 0 && (
-        <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg" style={{background:"#0f1e35",border:"1px solid #1e3a5f"}}">
+        <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg" style={{background:"#0f1e35",border:"1px solid #1e3a5f"}}>
           <Info size={13} className="text-status-blue shrink-0"/>
           <p className="text-xs text-status-blue">Strategy will be based on: <strong>{dataSources.join(' · ')}</strong></p>
         </div>
@@ -297,7 +297,7 @@ function StrategyPageInner() {
       {strategy && (
         <>
           {strategy.tracking_alert && (
-            <div className="flex items-start gap-3 p-4 rounded-xl" style={{background:"#2a0f0f",border:"1px solid rgba(239,68,68,0.2)"}} mb-4">
+            <div className="flex items-start gap-3 p-4 mb-4 rounded-xl" style={{background:"#2a0f0f",border:"1px solid rgba(239,68,68,0.2)"}}>
               <AlertTriangle size={16} className="text-status-red shrink-0 mt-0.5"/>
               <div>
                 <p className="text-sm font-semibold text-status-red mb-0.5">Tracking issue detected</p>
@@ -326,8 +326,8 @@ function StrategyPageInner() {
           <Section id="channels" title="Channel strategy & budget split">
             <div className="space-y-4">
               {(strategy.channel_strategy||[]).map((ch, i) => (
-                <div key={i} className="rounded-lg overflow-hidden" style={{border:"1px solid #1e2a48"}}">
-                  <div className="flex items-center justify-between p-3" style={{background:"#111827"}}">
+                <div key={i} className="rounded-lg overflow-hidden" style={{border:"1px solid #1e2a48"}}>
+                  <div className="flex items-center justify-between p-3" style={{background:"#111827"}}>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-text-primary">{ch.channel}</p>
                       <span className={roleColor[ch.role]||'badge-gray'}>{ch.role}</span>
@@ -338,7 +338,7 @@ function StrategyPageInner() {
                     </div>
                   </div>
                   <div className="p-3">
-                    {ch.bid_strategy && <p className="text-xs text-status-blue px-3 py-1.5 rounded-lg mb-2 font-semibold" style={{background:"#0f1e35"}}">Bid strategy: {ch.bid_strategy}</p>}
+                    {ch.bid_strategy && <p className="text-xs text-status-blue px-3 py-1.5 rounded-lg mb-2 font-semibold" style={{background:"#0f1e35"}}>Bid strategy: {ch.bid_strategy}</p>}
                     <p className="text-xs text-text-secondary mb-3">{ch.rationale}</p>
                     {ch.budget_split?.length > 0 && (
                       <div>
@@ -346,7 +346,7 @@ function StrategyPageInner() {
                         <div className="space-y-1.5">
                           {ch.budget_split.map((b, j) => (
                             <div key={j} className="flex items-center gap-3">
-                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:"#1a2035"}}">
+                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{background:"#1a2035"}}>
                                 <div className="h-full bg-brand-gold rounded-full" style={{width: `${b.percentage}%`}}/>
                               </div>
                               <span className="text-xs text-text-primary w-40 shrink-0">{b.campaign_type}</span>
@@ -432,7 +432,7 @@ function StrategyPageInner() {
                   const timeline = typeof w === 'object' ? w.timeline : null
                   const impact = typeof w === 'object' ? w.expected_impact : null
                   return (
-                    <div key={i} className="flex gap-3 p-3 rounded-lg" style={{background:"#111827",border:"1px solid #1e2a48"}}">
+                    <div key={i} className="flex gap-3 p-3 rounded-lg" style={{background:"#111827",border:"1px solid #1e2a48"}}>
                       {timeline && <span className="text-[10px] font-semibold bg-surface-tertiary text-brand-gold px-2 py-1 rounded shrink-0 h-fit">{timeline}</span>}
                       <div>
                         <p className="text-sm text-text-primary">{action}</p>
