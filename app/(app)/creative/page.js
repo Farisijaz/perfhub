@@ -182,11 +182,11 @@ function CreativePageInner() {
 
     if (adType.toLowerCase().includes('search')) {
       return (
-        <div className="rounded-xl" style={{background:"#0d1120",border:"1px solid #1e2a48"}} p-4 mb-3">
-          <p className="text-[10px] font-medium text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5"><Layout size={10}/> Search Ad Preview</p>
-          <div className="rounded-lg p-4" style={{background:"#111827",border:"1px solid #1e2a48"}}">
+        <div className="rounded-xl p-4 mb-3" style={{background:"#0d1120",border:"1px solid #1e2a48"}}>
+          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5"><Layout size={10}/> Search Ad Preview</p>
+          <div className="rounded-lg p-4" style={{background:"#111827",border:"1px solid #1e2a48"}}>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] border border-green-700 text-status-green px-1 rounded" style={{borderColor:"#22c55e"}} font-medium">Ad</span>
+              <span className="text-[10px] border text-status-green px-1 rounded font-medium" style={{borderColor:"#22c55e"}}>Ad</span>
               <span className="text-xs text-text-secondary">{client?.website?.replace(/https?:\/\//,'') || 'yourwebsite.com'}</span>
             </div>
             <div className="text-base font-semibold text-brand-gold leading-tight mb-1">{ad.headlines?.slice(0,3).join(' | ') || headline}</div>
@@ -197,7 +197,7 @@ function CreativePageInner() {
     }
     if (adType.toLowerCase().includes('story')) {
       return (
-        <div className="rounded-xl" style={{background:"#0d1120",border:"1px solid #1e2a48"}} p-4 mb-3">
+        <div className="rounded-xl p-4 mb-3" style={{background:"#0d1120",border:"1px solid #1e2a48"}}>
           <p className="text-[10px] font-medium text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5"><Layout size={10}/> Story Ad Preview</p>
           <div className="mx-auto" style={{width:180,height:320,background:'linear-gradient(135deg,#1a1a2e,#2d2d44)',borderRadius:12,position:'relative',overflow:'hidden',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:16}}>
             <div style={{position:'absolute',top:0,left:0,right:0,bottom:0,opacity:.15,background:'radial-gradient(circle at 70% 30%,#e8c97e,transparent)'}}/>
@@ -208,7 +208,7 @@ function CreativePageInner() {
       )
     }
     return (
-      <div className="rounded-xl" style={{background:"#0d1120",border:"1px solid #1e2a48"}} p-4 mb-3">
+      <div className="rounded-xl p-4 mb-3" style={{background:"#0d1120",border:"1px solid #1e2a48"}}>
         <p className="text-[10px] font-medium text-text-secondary uppercase tracking-wider mb-3 flex items-center gap-1.5"><Layout size={10}/> Feed Ad Preview</p>
         <div style={{width:'100%',maxWidth:320,margin:'0 auto',border:'1px solid #e5e7eb',borderRadius:10,overflow:'hidden',fontSize:13}}>
           <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px'}}>
