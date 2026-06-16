@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { createBrowserClient } from '@/lib/supabase-browser'
-import { TrendingUp, TrendingDown, Minus, RefreshCw } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, RefreshCw, Zap } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 
 export default function ReportsPage() {
@@ -46,97 +46,241 @@ export default function ReportsPage() {
     setLoadingInsight(false)
   }
 
-  const roasData = audits.slice(0,8).reverse().map(a => ({ date: new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}), roas: a.raw_data_json?.roas ? parseFloat(a.raw_data_json.roas.toFixed(2)) : null, cpa: a.raw_data_json?.cpa ? parseFloat(a.raw_data_json.cpa.toFixed(2)) : null })).filter(d => d.roas !== null)
-  const platformSplit = [{ name: 'Google Ads', value: audits.filter(a=>a.platform==='google').length, color: '#1a1a2e' },{ name: 'Meta Ads', value: audits.filter(a=>a.platform==='meta').length, color: '#e8c97e' }].filter(p=>p.value>0)
+  const roasData = audits.slice(0,8).reverse()
+    .map(a => ({
+      date: new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}),
+      roas: a.raw_data_json?.roas ? parseFloat(a.raw_data_json.roas.toFixed(2)) : null,
+      cpa: a.raw_data_json?.cpa ? parseFloat(a.raw_data_json.cpa.toFixed(2)) : null
+    })).filter(d => d.roas !== null)
+
+  const platformSplit = [
+    { name: 'Google Ads', value: audits.filter(a=>a.platform==='google').length, color: '#e8c97e' },
+    { name: 'Meta Ads',   value: audits.filter(a=>a.platform==='meta').length,   color: '#60a5fa' }
+  ].filter(p=>p.value>0)
+
   const latestMetrics = audits[0]?.metrics_json || []
-  const sBg = { good: 'bg-green-50', bad: 'bg-red-50', warn: 'bg-amber-50' }
-  const sIcon = s => s==='good' ? <TrendingUp size={12} className="text-green-600"/> : s==='bad' ? <TrendingDown size={12} className="text-red-600"/> : <Minus size={12} className="text-amber-600"/>
+
+  const sBg = {
+    good: 'bg-status-green-bg/30 border-status-green/20',
+    bad:  'bg-status-red-bg/30 border-status-red/20',
+    warn: 'bg-status-amber-bg/30 border-status-amber/20'
+  }
+  const sIcon = s => s==='good'
+    ? <TrendingUp size={12} className="text-status-green"/>
+    : s==='bad'
+    ? <TrendingDown size={12} className="text-status-red"/>
+    : <Minus size={12} className="text-status-amber"/>
+
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div style={{background:'#0d1120',border:'1px solid #1e2a48',borderRadius:8,padding:'8px 12px'}}>
+          <p style={{fontSize:11,color:'#8090c0',marginBottom:4}}>{label}</p>
+          <p style={{fontSize:13,fontWeight:600,color:'#e8c97e'}}>{payload[0].value}{payload[0].name === 'roas' ? 'x' : ' AED'}</p>
+        </div>
+      )
+    }
+    return null
+  }
 
   return (
     <div className="p-6">
       <div className="flex items-start justify-between mb-6">
-        <div><h1 className="text-lg font-semibold text-gray-900">Reporting dashboard</h1><p className="text-sm text-gray-400 mt-0.5">Agent 5 — live performance overview and AI insights per client</p></div>
+        <div>
+          <h1 className="text-xl font-bold text-text-primary tracking-tight">Reporting Dashboard</h1>
+          <p className="text-sm text-text-secondary mt-0.5">Agent 5 — live performance overview and AI insights per client</p>
+        </div>
         <div className="flex gap-2">
-          {clientId && <button className="btn-secondary" onClick={() => load(clientId)}><RefreshCw size={13}/> Refresh</button>}
-          <button className="btn-primary" onClick={generateInsight} disabled={loadingInsight || !clientId}><TrendingUp size={13}/>{loadingInsight ? 'Generating...' : 'AI insight'}</button>
+          {clientId && (
+            <button className="btn-secondary" onClick={() => load(clientId)} title="Reload latest data from database">
+              <RefreshCw size={13}/> Refresh data
+            </button>
+          )}
+          <button
+            className="btn-primary"
+            onClick={generateInsight}
+            disabled={loadingInsight || !clientId}
+            title="Generate a fresh AI weekly briefing based on all client data"
+          >
+            <Zap size={13}/>{loadingInsight ? 'Generating...' : 'AI Insight'}
+          </button>
         </div>
       </div>
 
-      <div className="mb-6">
-        <label className="block text-xs text-gray-500 mb-1.5">Client</label>
+      <div className="card p-4 mb-6">
+        <label className="block text-xs font-semibold text-text-secondary mb-1.5 uppercase tracking-wider">Client</label>
         <select className="select max-w-xs" value={clientId} onChange={e => { setClientId(e.target.value); if(e.target.value) load(e.target.value) }}>
           <option value="">Select client...</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </div>
 
-      {!clientId && <div className="card p-12 text-center"><p className="text-sm text-gray-400">Select a client to view their dashboard</p></div>}
+      {!clientId && (
+        <div className="card p-16 text-center">
+          <p className="text-sm font-semibold text-text-primary mb-1">Select a client to view their dashboard</p>
+          <p className="text-xs text-text-secondary">Performance data, trends and AI insights will appear here</p>
+        </div>
+      )}
 
-      {clientId && loading && <div className="flex justify-center py-12"><div className="flex gap-1.5">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}</div></div>}
+      {clientId && loading && (
+        <div className="flex justify-center py-12">
+          <div className="flex gap-1.5">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-brand-gold animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}</div>
+        </div>
+      )}
 
       {clientId && !loading && (
         <>
+          {/* AI Insight */}
           {(insight || loadingInsight) && (
-            <div className="card p-5 mb-4 bg-gray-50">
-              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3">AI weekly insight</p>
-              {loadingInsight && !insight && <div className="flex gap-1.5">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-gray-300 animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}</div>}
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{insight}</p>
+            <div className="card p-5 mb-5" style={{borderLeft:'3px solid #e8c97e'}}>
+              <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">AI Weekly Insight</p>
+              {loadingInsight && !insight && (
+                <div className="flex gap-1.5 py-2">{[0,1,2].map(i=><div key={i} className="w-2 h-2 rounded-full bg-brand-gold animate-pulse" style={{animationDelay:`${i*.15}s`}}/>)}</div>
+              )}
+              <p className="text-sm text-text-primary leading-relaxed whitespace-pre-wrap">{insight}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-4 gap-3 mb-4">
+          {!insight && !loadingInsight && (
+            <div className="card p-5 mb-5" style={{borderLeft:'3px solid #1e2a48'}}>
+              <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">AI Weekly Insight</p>
+              <p className="text-sm text-text-secondary mb-3">Get an executive-level briefing on this client — account health, strategic progress, and top priorities for this week.</p>
+              <button className="btn-primary" onClick={generateInsight} disabled={loadingInsight}>
+                <Zap size={13}/> Generate insight
+              </button>
+            </div>
+          )}
+
+          {/* Stats grid */}
+          <div className="grid grid-cols-4 gap-3 mb-5">
             {[
-              ['Audits run', audits.length, `${audits.filter(a=>a.platform==='google').length} Google · ${audits.filter(a=>a.platform==='meta').length} Meta`],
-              ['Strategies', strategies.length, strategies[0]?.title?.slice(0,30)||'None yet'],
-              ['Competitors', competitors.length, 'tracked'],
-              ['Last audit', audits[0] ? new Date(audits[0].created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—', audits[0]?.platform||'']
+              ['Audits Run',    audits.length,       `${audits.filter(a=>a.platform==='google').length} Google · ${audits.filter(a=>a.platform==='meta').length} Meta`],
+              ['Strategies',    strategies.length,   strategies[0]?.title?.slice(0,30) || 'None yet'],
+              ['Competitors',   competitors.length,  'tracked'],
+              ['Last Audit',    audits[0] ? new Date(audits[0].created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) : '—', audits[0]?.platform || ''],
             ].map(([l,v,s]) => (
-              <div key={l} className="card p-4"><p className="text-xs text-gray-400 mb-1">{l}</p><p className="text-2xl font-medium text-gray-900">{v}</p><p className="text-xs text-gray-400 mt-1 truncate">{s}</p></div>
+              <div key={l} className="card p-4">
+                <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">{l}</p>
+                <p className="text-2xl font-bold text-text-primary">{v}</p>
+                <p className="text-xs text-text-secondary mt-1 truncate">{s}</p>
+              </div>
             ))}
           </div>
 
+          {/* Latest metrics */}
           {latestMetrics.length > 0 && (
-            <div className="mb-4"><p className="text-sm font-medium text-gray-900 mb-3">Latest audit metrics</p>
+            <div className="mb-5">
+              <p className="text-sm font-bold text-text-primary mb-3">Latest Audit Metrics</p>
               <div className="grid grid-cols-3 gap-3">
-                {latestMetrics.map(m => <div key={m.label} className={`card p-3 ${sBg[m.status]||''}`}><div className="flex items-center justify-between mb-1"><p className="text-xs text-gray-500">{m.label}</p>{sIcon(m.status)}</div><p className="text-xl font-medium text-gray-900">{m.value}</p><p className="text-xs text-gray-400 mt-0.5">{m.bench}</p></div>)}
+                {latestMetrics.map(m => (
+                  <div key={m.label} className={`card p-4 ${sBg[m.status]||''}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-text-secondary uppercase tracking-wider">{m.label}</p>
+                      {sIcon(m.status)}
+                    </div>
+                    <p className="text-2xl font-bold text-text-primary">{m.value}</p>
+                    <p className="text-xs text-text-secondary mt-1">{m.bench}</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
+          {/* Charts */}
           {roasData.length > 1 && (
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="card p-4"><p className="text-xs font-medium text-gray-500 mb-3">ROAS trend</p>
-                <ResponsiveContainer width="100%" height={180}><LineChart data={roasData}><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/><XAxis dataKey="date" tick={{fontSize:10,fill:'#9ca3af'}}/><YAxis tick={{fontSize:10,fill:'#9ca3af'}} tickFormatter={v=>v+'x'}/><Tooltip formatter={v=>[v+'x','ROAS']}/><Line type="monotone" dataKey="roas" stroke="#1a1a2e" strokeWidth={2} dot={{r:3}}/></LineChart></ResponsiveContainer>
+            <div className="grid grid-cols-2 gap-4 mb-5">
+              <div className="card p-5">
+                <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">ROAS Trend</p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={roasData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1a2035" vertical={false}/>
+                    <XAxis dataKey="date" tick={{fontSize:10,fill:'#8090c0'}} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{fontSize:10,fill:'#8090c0'}} tickFormatter={v=>v+'x'} axisLine={false} tickLine={false}/>
+                    <Tooltip content={<CustomTooltip/>}/>
+                    <Line type="monotone" dataKey="roas" stroke="#e8c97e" strokeWidth={2} dot={{r:3,fill:'#e8c97e'}}/>
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-              <div className="card p-4"><p className="text-xs font-medium text-gray-500 mb-3">CPA trend (AED)</p>
-                <ResponsiveContainer width="100%" height={180}><LineChart data={roasData}><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/><XAxis dataKey="date" tick={{fontSize:10,fill:'#9ca3af'}}/><YAxis tick={{fontSize:10,fill:'#9ca3af'}} tickFormatter={v=>'AED '+v}/><Tooltip formatter={v=>['AED '+v,'CPA']}/><Line type="monotone" dataKey="cpa" stroke="#e8c97e" strokeWidth={2} dot={{r:3}}/></LineChart></ResponsiveContainer>
+              <div className="card p-5">
+                <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">CPA Trend (AED)</p>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={roasData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1a2035" vertical={false}/>
+                    <XAxis dataKey="date" tick={{fontSize:10,fill:'#8090c0'}} axisLine={false} tickLine={false}/>
+                    <YAxis tick={{fontSize:10,fill:'#8090c0'}} tickFormatter={v=>'AED '+v} axisLine={false} tickLine={false}/>
+                    <Tooltip content={<CustomTooltip/>}/>
+                    <Line type="monotone" dataKey="cpa" stroke="#60a5fa" strokeWidth={2} dot={{r:3,fill:'#60a5fa'}}/>
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
           )}
 
           {platformSplit.length > 0 && (
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="card p-4"><p className="text-xs font-medium text-gray-500 mb-3">Platform split</p>
-                <ResponsiveContainer width="100%" height={160}><PieChart><Pie data={platformSplit} cx="50%" cy="50%" outerRadius={60} dataKey="value" label={({name,value})=>`${name}: ${value}`} fontSize={11}>{platformSplit.map((e,i)=><Cell key={i} fill={e.color}/>)}</Pie><Tooltip/></PieChart></ResponsiveContainer>
+            <div className="grid grid-cols-2 gap-4 mb-5">
+              <div className="card p-5">
+                <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Platform Split</p>
+                <ResponsiveContainer width="100%" height={160}>
+                  <PieChart>
+                    <Pie data={platformSplit} cx="50%" cy="50%" outerRadius={60} dataKey="value"
+                      label={({name,value})=>`${name}: ${value}`}
+                      labelLine={{stroke:'#2e3858'}}
+                      style={{fontSize:11,fill:'#8090c0'}}>
+                      {platformSplit.map((e,i)=><Cell key={i} fill={e.color}/>)}
+                    </Pie>
+                    <Tooltip contentStyle={{background:'#0d1120',border:'1px solid #1e2a48',borderRadius:8}}
+                      labelStyle={{color:'#8090c0'}} itemStyle={{color:'#e8eaf6'}}/>
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-              <div className="card p-4"><p className="text-xs font-medium text-gray-500 mb-3">Competitors tracked</p>
-                <div className="space-y-2 mt-2">
-                  {competitors.slice(0,5).map(c => <div key={c.id} className="flex items-center justify-between"><div className="flex items-center gap-2"><div className="w-6 h-6 rounded bg-gray-100 flex items-center justify-center text-[10px] font-medium text-gray-600">{c.competitor_name.slice(0,2).toUpperCase()}</div><p className="text-sm text-gray-700">{c.competitor_name}</p></div><p className="text-xs text-gray-400">{new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p></div>)}
-                  {competitors.length === 0 && <p className="text-sm text-gray-400">No competitors analysed yet</p>}
+              <div className="card p-5">
+                <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Competitors Tracked</p>
+                <div className="space-y-2 mt-1">
+                  {competitors.slice(0,5).map(c => (
+                    <div key={c.id} className="flex items-center justify-between py-1.5 border-b border-surface-border last:border-0">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-lg bg-surface-tertiary flex items-center justify-center text-[10px] font-bold text-brand-gold">
+                          {c.competitor_name.slice(0,2).toUpperCase()}
+                        </div>
+                        <p className="text-sm font-medium text-text-primary">{c.competitor_name}</p>
+                      </div>
+                      <p className="text-xs text-text-secondary">{new Date(c.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p>
+                    </div>
+                  ))}
+                  {competitors.length === 0 && <p className="text-sm text-text-secondary py-4 text-center">No competitors analysed yet</p>}
                 </div>
               </div>
             </div>
           )}
 
+          {/* Audit history */}
           {audits.length > 0 && (
-            <div className="card p-4"><p className="text-xs font-medium text-gray-500 mb-3">Audit history</p>
-              <div className="space-y-2">
-                {audits.slice(0,8).map(a => <div key={a.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"><div className="flex items-center gap-3"><span className={a.platform==='google'?'badge-gray':'badge-amber'}>{a.platform==='google'?'Google':'Meta'}</span><p className="text-sm text-gray-600">{a.date_range}</p></div><div className="flex items-center gap-4">{a.raw_data_json?.roas&&<span className="text-xs text-gray-500">ROAS {parseFloat(a.raw_data_json.roas).toFixed(1)}x</span>}{a.raw_data_json?.cpa&&<span className="text-xs text-gray-500">CPA AED {parseFloat(a.raw_data_json.cpa).toFixed(0)}</span>}<p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p></div></div>)}
+            <div className="card p-5">
+              <p className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-4">Audit History</p>
+              <div className="space-y-0">
+                {audits.slice(0,8).map(a => (
+                  <div key={a.id} className="flex items-center justify-between py-3 border-b border-surface-border last:border-0">
+                    <div className="flex items-center gap-3">
+                      <span className={a.platform==='google'?'badge-gray':'badge-gold'}>{a.platform==='google'?'Google':'Meta'}</span>
+                      <p className="text-sm text-text-primary">{a.date_range}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      {a.raw_data_json?.roas && <span className="text-xs font-semibold text-text-primary">ROAS {parseFloat(a.raw_data_json.roas).toFixed(1)}x</span>}
+                      {a.raw_data_json?.cpa && <span className="text-xs font-semibold text-text-primary">CPA AED {parseFloat(a.raw_data_json.cpa).toFixed(0)}</span>}
+                      <p className="text-xs text-text-secondary">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {audits.length === 0 && strategies.length === 0 && <div className="card p-12 text-center"><p className="text-sm text-gray-500 mb-1">No data yet for this client</p><p className="text-xs text-gray-400">Run an audit or build a strategy to start seeing data here</p></div>}
+          {audits.length === 0 && strategies.length === 0 && (
+            <div className="card p-16 text-center">
+              <p className="text-sm font-semibold text-text-primary mb-1">No data yet for this client</p>
+              <p className="text-xs text-text-secondary">Run an audit or build a strategy to start seeing data here</p>
+            </div>
+          )}
         </>
       )}
     </div>
