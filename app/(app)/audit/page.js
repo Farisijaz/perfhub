@@ -277,7 +277,7 @@ function AuditPageInner() {
     ])
   }
 
-  const sBg = { good: 'bg-green-50', bad: 'bg-red-50', warn: 'bg-amber-50' }
+  const sBg = { good: 'bg-status-green-bg/30', bad: 'bg-status-red-bg/30', warn: 'bg-status-amber-bg/30' }
   const sIcon = s => s === 'good' ? <TrendingUp size={12} className="text-green-600"/> : s === 'bad' ? <TrendingDown size={12} className="text-red-600"/> : <Minus size={12} className="text-amber-600"/>
 
   const mr = marketResult
@@ -286,8 +286,8 @@ function AuditPageInner() {
     <div className="p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-lg font-semibold text-gray-900">Audit</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Agent 1 — account performance audit or market intelligence for new clients</p>
+          <h1 className="text-lg font-semibold text-text-primary">Audit</h1>
+          <p className="text-sm text-text-dim mt-0.5">Agent 1 — account performance audit or market intelligence for new clients</p>
         </div>
         <div className="flex gap-2">
           {auditMode === 'account' && (summary || metrics.length > 0) && (
@@ -305,16 +305,16 @@ function AuditPageInner() {
       </div>
 
       {/* Mode toggle */}
-      <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-6 w-fit">
+      <div className="flex gap-1 p-1 bg-surface-tertiary rounded-xl mb-6 w-fit">
         <button
           onClick={() => setAuditMode('account')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${auditMode === 'account' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${auditMode === 'account' ? 'bg-surface-primary text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
         >
           <BarChart2 size={14}/> Account audit
         </button>
         <button
           onClick={() => setAuditMode('market')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${auditMode === 'market' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${auditMode === 'market' ? 'bg-surface-primary text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
         >
           <Globe size={14}/> Market audit
           <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-semibold">New to paid ads</span>
@@ -323,7 +323,7 @@ function AuditPageInner() {
 
       {/* Client selector — shared */}
       <div className="card p-4 mb-4">
-        <label className="block text-xs text-gray-500 mb-1.5">Client</label>
+        <label className="block text-xs text-text-muted mb-1.5">Client</label>
         <select className="select max-w-xs" value={clientId} onChange={e => setClientId(e.target.value)}>
           <option value="">Select client...</option>
           {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -334,34 +334,34 @@ function AuditPageInner() {
       {auditMode === 'account' && (
         <>
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <div><label className="block text-xs text-gray-500 mb-1.5">Platform</label>
+            <div><label className="block text-xs text-text-muted mb-1.5">Platform</label>
               <div className="flex gap-2">
-                {['google','meta'].map(p => <button key={p} onClick={() => setPlatform(p)} className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${platform===p ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}>{p==='google'?'Google Ads':'Meta Ads'}</button>)}
+                {['google','meta'].map(p => <button key={p} onClick={() => setPlatform(p)} className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors ${platform===p ? 'bg-surface-tertiary text-brand-gold border-brand-gold/40' : 'bg-surface-primary text-text-muted border-surface-border-light'}`}>{p==='google'?'Google Ads':'Meta Ads'}</button>)}
               </div>
             </div>
-            <div><label className="block text-xs text-gray-500 mb-1.5">Date range</label>
+            <div><label className="block text-xs text-text-muted mb-1.5">Date range</label>
               <select className="select" value={dateRange} onChange={e => setDateRange(e.target.value)}>
                 {['Last 30 days','Last 60 days','Last 90 days','This year'].map(d => <option key={d}>{d}</option>)}
               </select>
             </div>
           </div>
 
-          <div className={`card border-dashed p-8 text-center cursor-pointer mb-2 ${dragOver ? 'border-gray-400 bg-gray-50' : 'hover:border-gray-300'}`}
+          <div className={`card border-dashed p-8 text-center cursor-pointer mb-2 ${dragOver ? 'border-gray-400 bg-surface-secondary' : 'hover:border-surface-border-light'}`}
             onClick={() => document.getElementById('audit-input').click()}
             onDragOver={e => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={e => { e.preventDefault(); setDragOver(false); addFiles(Array.from(e.dataTransfer.files)) }}>
-            <Upload size={22} className="text-gray-300 mx-auto mb-2"/>
-            <p className="text-sm font-medium text-gray-600 mb-1">Drop your {platform==='google'?'Google Ads':'Meta Ads'} CSV export here</p>
-            <p className="text-xs text-gray-400">{platform==='google'?'Google Ads → Reports → Campaigns → Download':'Meta Ads Manager → Campaigns → Export'}</p>
+            <Upload size={22} className="text-text-dim mx-auto mb-2"/>
+            <p className="text-sm font-medium text-text-secondary mb-1">Drop your {platform==='google'?'Google Ads':'Meta Ads'} CSV export here</p>
+            <p className="text-xs text-text-dim">{platform==='google'?'Google Ads → Reports → Campaigns → Download':'Meta Ads Manager → Campaigns → Export'}</p>
             <input id="audit-input" type="file" accept=".csv" className="hidden" onChange={e => addFiles(Array.from(e.target.files))}/>
           </div>
 
-          {error && <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3">{error}</div>}
+          {error && <div className="text-xs text-red-600 bg-status-red-bg/30 border border-red-100 rounded-lg px-3 py-2 mb-3">{error}</div>}
 
           {files.length > 0 && (
             <div className="flex gap-2 flex-wrap mb-4">
-              {files.map(f => <div key={f.name} className="flex items-center gap-2 text-xs bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5"><FileText size={12} className="text-gray-400"/>{f.name}<button onClick={() => setFiles(files.filter(x => x.name !== f.name))} className="text-gray-400 hover:text-red-500"><X size={12}/></button></div>)}
+              {files.map(f => <div key={f.name} className="flex items-center gap-2 text-xs bg-surface-secondary border border-surface-border-light rounded-lg px-3 py-1.5"><FileText size={12} className="text-text-dim"/>{f.name}<button onClick={() => setFiles(files.filter(x => x.name !== f.name))} className="text-text-dim hover:text-red-500"><X size={12}/></button></div>)}
             </div>
           )}
 
@@ -370,11 +370,11 @@ function AuditPageInner() {
               {metrics.map(m => (
                 <div key={m.label} className={`card p-4 ${sBg[m.status]||''}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-medium text-gray-500">{m.label}</p>
+                    <p className="text-xs font-medium text-text-muted">{m.label}</p>
                     {sIcon(m.status)}
                   </div>
-                  <p className="text-xl font-semibold text-gray-900">{m.value}</p>
-                  <p className="text-xs text-gray-400 mt-1">{m.bench}</p>
+                  <p className="text-xl font-semibold text-text-primary">{m.value}</p>
+                  <p className="text-xs text-text-dim mt-1">{m.bench}</p>
                 </div>
               ))}
             </div>
@@ -382,7 +382,7 @@ function AuditPageInner() {
 
           {campaigns.filter(c => c.roas > 0).length > 0 && (
             <div className="card p-4 mb-4">
-              <p className="text-xs font-medium text-gray-500 mb-4">ROAS by campaign</p>
+              <p className="text-xs font-medium text-text-muted mb-4">ROAS by campaign</p>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={campaigns.filter(c => c.roas > 0)}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
@@ -397,23 +397,23 @@ function AuditPageInner() {
 
           {(summary || running) && (
             <div className="card p-5 mb-4">
-              <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3">AI Analysis</p>
+              <p className="text-[10px] font-medium text-text-dim uppercase tracking-wider mb-3">AI Analysis</p>
               {running && !summary && <ThinkingBar message="Searching web for live benchmarks and analysing account performance..."/>}
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{summary}</p>
+              <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{summary}</p>
             </div>
           )}
 
           {recos.length > 0 && (
             <div className="mb-4">
-              <p className="text-sm font-medium text-gray-900 mb-3">Prioritised recommendations</p>
+              <p className="text-sm font-medium text-text-primary mb-3">Prioritised recommendations</p>
               <div className="space-y-2">
                 {recos.map((r,i) => (
                   <div key={i} className="card p-4 flex gap-3">
                     <div className="w-6 h-6 rounded-full bg-gray-900 text-yellow-400 text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">{i+1}</div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 mb-1">{r.title}</p>
-                      <p className="text-xs text-gray-500 leading-relaxed">{r.desc}</p>
-                      <span className={`inline-block mt-2 text-[10px] font-medium px-2 py-0.5 rounded-full ${r.impact==='High'?'bg-green-50 text-green-700':'bg-amber-50 text-amber-700'}`}>{r.impact} impact</span>
+                      <p className="text-sm font-medium text-text-primary mb-1">{r.title}</p>
+                      <p className="text-xs text-text-muted leading-relaxed">{r.desc}</p>
+                      <span className={`inline-block mt-2 text-[10px] font-medium px-2 py-0.5 rounded-full ${r.impact==='High'?'bg-status-green-bg/30 text-status-green':'bg-status-amber-bg/30 text-amber-700'}`}>{r.impact} impact</span>
                     </div>
                   </div>
                 ))}
@@ -422,9 +422,9 @@ function AuditPageInner() {
           )}
 
           {pastAudits.length > 0 && (
-            <div className="mt-6"><p className="text-sm font-medium text-gray-900 mb-3">Past audits</p>
+            <div className="mt-6"><p className="text-sm font-medium text-text-primary mb-3">Past audits</p>
               <div className="space-y-2">
-                {pastAudits.map(a => <div key={a.id} className="card px-4 py-3 flex items-center justify-between"><div><p className="text-sm text-gray-700">{a.platform==='google'?'Google Ads':'Meta Ads'} · {a.date_range}</p><p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p></div><button className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-2 py-1" onClick={()=>{if(a.summary)setSummary(a.summary);if(a.metrics_json)setMetrics(a.metrics_json);if(a.recommendations_json)setRecos(a.recommendations_json)}}>View</button></div>)}
+                {pastAudits.map(a => <div key={a.id} className="card px-4 py-3 flex items-center justify-between"><div><p className="text-sm text-text-secondary">{a.platform==='google'?'Google Ads':'Meta Ads'} · {a.date_range}</p><p className="text-xs text-text-dim">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p></div><button className="text-xs text-text-muted hover:text-text-primary border border-surface-border-light rounded px-2 py-1" onClick={()=>{if(a.summary)setSummary(a.summary);if(a.metrics_json)setMetrics(a.metrics_json);if(a.recommendations_json)setRecos(a.recommendations_json)}}>View</button></div>)}
               </div>
             </div>
           )}
@@ -436,7 +436,7 @@ function AuditPageInner() {
         <>
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="block text-xs text-gray-500 mb-1.5">Target market</label>
+              <label className="block text-xs text-text-muted mb-1.5">Target market</label>
               <select className="select" value={market} onChange={e => setMarket(e.target.value)}>
                 {MARKETS.map(m => <option key={m}>{m}</option>)}
               </select>
@@ -444,7 +444,7 @@ function AuditPageInner() {
           </div>
 
           <div className="mb-6">
-            <label className="block text-xs text-gray-500 mb-3">Competitors (up to 3)</label>
+            <label className="block text-xs text-text-muted mb-3">Competitors (up to 3)</label>
             <div className="space-y-3">
               {competitors.map((c, i) => (
                 <div key={i} className="grid grid-cols-2 gap-3">
@@ -465,7 +465,7 @@ function AuditPageInner() {
             </div>
           </div>
 
-          {error && <div className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-4">{error}</div>}
+          {error && <div className="text-xs text-red-600 bg-status-red-bg/30 border border-red-100 rounded-lg px-3 py-2 mb-4">{error}</div>}
 
           {/* Loading state */}
           {marketRunning && <ThinkingBar message={strategyRunning ? 'Market audit complete — building launch strategy...' : 'Searching web for live market benchmarks and competitor data...'}/> }
@@ -475,38 +475,38 @@ function AuditPageInner() {
             <div className="space-y-4">
 
               {/* Header */}
-              <div className="card p-4 bg-blue-50 border-blue-100">
+              <div className="card p-4 bg-status-blue-bg border-surface-border-light">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-blue-900">Market audit — {mr.market}</p>
-                    <p className="text-xs text-blue-600 mt-0.5">{clients.find(c=>c.id===clientId)?.industry} · {mr.competitors?.filter(c=>c.name).length} competitors analysed</p>
+                    <p className="text-sm font-semibold text-status-blue">Market audit — {mr.market}</p>
+                    <p className="text-xs text-status-blue mt-0.5">{clients.find(c=>c.id===clientId)?.industry} · {mr.competitors?.filter(c=>c.name).length} competitors analysed</p>
                   </div>
-                  {mr.created_at && <p className="text-xs text-blue-400">{new Date(mr.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>}
+                  {mr.created_at && <p className="text-xs text-text-dim">{new Date(mr.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>}
                 </div>
               </div>
 
               {/* Summary */}
               {mr.summary && (
                 <div className="card p-5">
-                  <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3">Market overview</p>
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{mr.summary}</p>
+                  <p className="text-[10px] font-medium text-text-dim uppercase tracking-wider mb-3">Market overview</p>
+                  <p className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">{mr.summary}</p>
                 </div>
               )}
 
               {/* Benchmarks */}
               {mr.benchmarks && (
                 <div className="card p-4">
-                  <p className="text-xs font-medium text-gray-500 mb-4">Industry benchmarks · {mr.market}</p>
+                  <p className="text-xs font-medium text-text-muted mb-4">Industry benchmarks · {mr.market}</p>
                   <div className="grid grid-cols-2 gap-4">
                     {/* Google benchmarks */}
                     {mr.benchmarks.google && (
                       <div>
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Google Ads</p>
+                        <p className="text-[10px] font-semibold text-text-dim uppercase tracking-wider mb-2">Google Ads</p>
                         <div className="space-y-2">
                           {Object.entries(mr.benchmarks.google).map(([k,v]) => (
-                            <div key={k} className="flex justify-between items-center py-1.5 border-b border-gray-50">
-                              <span className="text-xs text-gray-500 capitalize">{k.replace(/_/g,' ')}</span>
-                              <span className="text-xs font-semibold text-gray-900">{v}</span>
+                            <div key={k} className="flex justify-between items-center py-1.5 border-b border-surface-border">
+                              <span className="text-xs text-text-muted capitalize">{k.replace(/_/g,' ')}</span>
+                              <span className="text-xs font-semibold text-text-primary">{v}</span>
                             </div>
                           ))}
                         </div>
@@ -515,12 +515,12 @@ function AuditPageInner() {
                     {/* Meta benchmarks */}
                     {mr.benchmarks.meta && (
                       <div>
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Meta Ads</p>
+                        <p className="text-[10px] font-semibold text-text-dim uppercase tracking-wider mb-2">Meta Ads</p>
                         <div className="space-y-2">
                           {Object.entries(mr.benchmarks.meta).map(([k,v]) => (
-                            <div key={k} className="flex justify-between items-center py-1.5 border-b border-gray-50">
-                              <span className="text-xs text-gray-500 capitalize">{k.replace(/_/g,' ')}</span>
-                              <span className="text-xs font-semibold text-gray-900">{v}</span>
+                            <div key={k} className="flex justify-between items-center py-1.5 border-b border-surface-border">
+                              <span className="text-xs text-text-muted capitalize">{k.replace(/_/g,' ')}</span>
+                              <span className="text-xs font-semibold text-text-primary">{v}</span>
                             </div>
                           ))}
                         </div>
@@ -528,7 +528,7 @@ function AuditPageInner() {
                     )}
                   </div>
                   {mr.benchmarks.platform_notes && (
-                    <p className="text-xs text-gray-400 mt-3 italic border-t border-gray-50 pt-3">{mr.benchmarks.platform_notes}</p>
+                    <p className="text-xs text-text-dim mt-3 italic border-t border-surface-border pt-3">{mr.benchmarks.platform_notes}</p>
                   )}
                 </div>
               )}
@@ -536,37 +536,37 @@ function AuditPageInner() {
               {/* Competitor intel */}
               {mr.competitor_intel?.length > 0 && (
                 <div className="card p-4">
-                  <p className="text-xs font-medium text-gray-500 mb-3">Competitor ad intelligence</p>
+                  <p className="text-xs font-medium text-text-muted mb-3">Competitor ad intelligence</p>
                   <div className="space-y-2">
                     {mr.competitor_intel.map((comp, i) => (
-                      <div key={i} className="border border-gray-100 rounded-lg overflow-hidden">
+                      <div key={i} className="border border-surface-border rounded-lg overflow-hidden">
                         <button
-                          className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50"
+                          className="w-full flex items-center justify-between p-3 text-left hover:bg-surface-secondary"
                           onClick={() => setExpandedCompetitor(expandedCompetitor === i ? null : i)}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                            <div className="w-7 h-7 rounded-lg bg-surface-tertiary flex items-center justify-center text-[10px] font-bold text-text-muted">
                               {comp.name?.slice(0,2).toUpperCase()}
                             </div>
                             <div>
-                              <p className="text-sm font-medium text-gray-900">{comp.name}</p>
-                              {comp.website && <p className="text-[10px] text-gray-400">{comp.website.replace(/https?:\/\//,'')}</p>}
+                              <p className="text-sm font-medium text-text-primary">{comp.name}</p>
+                              {comp.website && <p className="text-[10px] text-text-dim">{comp.website.replace(/https?:\/\//,'')}</p>}
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${comp.ad_presence === 'Strong' ? 'bg-red-50 text-red-700' : comp.ad_presence === 'Moderate' ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'}`}>
+                            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${comp.ad_presence === 'Strong' ? 'bg-status-red-bg/30 text-red-700' : comp.ad_presence === 'Moderate' ? 'bg-status-amber-bg/30 text-amber-700' : 'bg-status-green-bg/30 text-status-green'}`}>
                               {comp.ad_presence} presence
                             </span>
-                            {expandedCompetitor === i ? <ChevronUp size={14} className="text-gray-400"/> : <ChevronDown size={14} className="text-gray-400"/>}
+                            {expandedCompetitor === i ? <ChevronUp size={14} className="text-text-dim"/> : <ChevronDown size={14} className="text-text-dim"/>}
                           </div>
                         </button>
                         {expandedCompetitor === i && (
-                          <div className="border-t border-gray-100 p-3 space-y-3">
-                            {comp.estimated_spend && <div><p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Est. monthly spend</p><p className="text-sm text-gray-700">{comp.estimated_spend}</p></div>}
-                            {comp.platforms?.length > 0 && <div><p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Active platforms</p><div className="flex gap-1 flex-wrap">{comp.platforms.map((p,j)=><span key={j} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{p}</span>)}</div></div>}
-                            {comp.ad_angles?.length > 0 && <div><p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Ad angles</p><div className="flex gap-1 flex-wrap">{comp.ad_angles.map((a,j)=><span key={j} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">{a}</span>)}</div></div>}
-                            {comp.likely_keywords?.length > 0 && <div><p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Likely keywords</p><div className="flex gap-1 flex-wrap">{comp.likely_keywords.map((k,j)=><span key={j} className="text-xs bg-gray-50 border border-gray-200 text-gray-600 px-2 py-0.5 rounded font-mono">{k}</span>)}</div></div>}
-                            {comp.gap && <div className="bg-green-50 rounded-lg p-2 mt-1"><p className="text-[10px] font-semibold text-green-700 uppercase tracking-wider mb-0.5">Your opportunity</p><p className="text-xs text-green-700">{comp.gap}</p></div>}
+                          <div className="border-t border-surface-border p-3 space-y-3">
+                            {comp.estimated_spend && <div><p className="text-[10px] font-semibold text-text-dim uppercase tracking-wider mb-1">Est. monthly spend</p><p className="text-sm text-text-secondary">{comp.estimated_spend}</p></div>}
+                            {comp.platforms?.length > 0 && <div><p className="text-[10px] font-semibold text-text-dim uppercase tracking-wider mb-1">Active platforms</p><div className="flex gap-1 flex-wrap">{comp.platforms.map((p,j)=><span key={j} className="text-xs bg-surface-tertiary text-text-secondary px-2 py-0.5 rounded">{p}</span>)}</div></div>}
+                            {comp.ad_angles?.length > 0 && <div><p className="text-[10px] font-semibold text-text-dim uppercase tracking-wider mb-1">Ad angles</p><div className="flex gap-1 flex-wrap">{comp.ad_angles.map((a,j)=><span key={j} className="text-xs bg-status-blue-bg text-status-blue px-2 py-0.5 rounded">{a}</span>)}</div></div>}
+                            {comp.likely_keywords?.length > 0 && <div><p className="text-[10px] font-semibold text-text-dim uppercase tracking-wider mb-1">Likely keywords</p><div className="flex gap-1 flex-wrap">{comp.likely_keywords.map((k,j)=><span key={j} className="text-xs bg-surface-secondary border border-surface-border-light text-text-secondary px-2 py-0.5 rounded font-mono">{k}</span>)}</div></div>}
+                            {comp.gap && <div className="rounded-lg p-2 mt-1"><p className="text-[10px] font-semibold text-status-green uppercase tracking-wider mb-0.5">Your opportunity</p><p className="text-xs text-status-green">{comp.gap}</p></div>}
                           </div>
                         )}
                       </div>
@@ -578,15 +578,15 @@ function AuditPageInner() {
               {/* Opportunities */}
               {mr.opportunities?.length > 0 && (
                 <div className="card p-4">
-                  <p className="text-xs font-medium text-gray-500 mb-3">Market opportunities</p>
+                  <p className="text-xs font-medium text-text-muted mb-3">Market opportunities</p>
                   <div className="space-y-2">
                     {mr.opportunities.map((o, i) => (
-                      <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                      <div key={i} className="flex gap-3 p-3 bg-surface-secondary rounded-lg">
                         <div className="w-5 h-5 rounded-full bg-gray-900 text-yellow-400 text-[10px] font-semibold flex items-center justify-center shrink-0 mt-0.5">{i+1}</div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900 mb-0.5">{o.title}</p>
-                          <p className="text-xs text-gray-500 leading-relaxed">{o.detail}</p>
-                          {o.action && <p className="text-xs text-blue-600 mt-1 font-medium">→ {o.action}</p>}
+                          <p className="text-sm font-medium text-text-primary mb-0.5">{o.title}</p>
+                          <p className="text-xs text-text-muted leading-relaxed">{o.detail}</p>
+                          {o.action && <p className="text-xs text-status-blue mt-1 font-medium">→ {o.action}</p>}
                         </div>
                       </div>
                     ))}
@@ -600,17 +600,17 @@ function AuditPageInner() {
               {marketStrategy && (
                 <div className="card p-4 border-l-4 border-gray-900">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-sm font-semibold text-gray-900">Launch strategy</p>
-                    <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Auto-generated from market audit</span>
+                    <p className="text-sm font-semibold text-text-primary">Launch strategy</p>
+                    <span className="text-[10px] bg-surface-tertiary text-text-muted px-2 py-0.5 rounded-full">Auto-generated from market audit</span>
                   </div>
 
                   {marketStrategy.executive_summary && (
-                    <p className="text-sm text-gray-600 leading-relaxed mb-4">{marketStrategy.executive_summary}</p>
+                    <p className="text-sm text-text-secondary leading-relaxed mb-4">{marketStrategy.executive_summary}</p>
                   )}
 
                   {marketStrategy.expected_kpis && (
                     <div className="mb-4">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Expected KPIs</p>
+                      <p className="text-[10px] font-semibold text-text-dim uppercase tracking-wider mb-2">Expected KPIs</p>
                       <div className="grid grid-cols-3 gap-2">
                         {[
                           ['ROAS', marketStrategy.expected_kpis.expected_roas],
@@ -619,9 +619,9 @@ function AuditPageInner() {
                           ['Impressions/mo', marketStrategy.expected_kpis.monthly_impressions],
                           ['Clicks/mo', marketStrategy.expected_kpis.monthly_clicks],
                         ].filter(([,v])=>v).map(([l,v]) => (
-                          <div key={l} className="bg-gray-50 rounded-lg p-2.5">
-                            <p className="text-[10px] text-gray-400 mb-1">{l}</p>
-                            <p className="text-sm font-semibold text-gray-900">{v}</p>
+                          <div key={l} className="bg-surface-secondary rounded-lg p-2.5">
+                            <p className="text-[10px] text-text-dim mb-1">{l}</p>
+                            <p className="text-sm font-semibold text-text-primary">{v}</p>
                           </div>
                         ))}
                       </div>
@@ -630,15 +630,15 @@ function AuditPageInner() {
 
                   {marketStrategy.channel_strategy?.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Channel strategy</p>
+                      <p className="text-[10px] font-semibold text-text-dim uppercase tracking-wider mb-2">Channel strategy</p>
                       <div className="space-y-2">
                         {marketStrategy.channel_strategy.map((ch, i) => (
-                          <div key={i} className="bg-gray-50 rounded-lg p-3">
+                          <div key={i} className="bg-surface-secondary rounded-lg p-3">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium text-gray-900">{ch.channel}</span>
-                              <span className="text-xs font-semibold text-gray-700">AED {(ch.monthly_budget||0).toLocaleString()}/mo · {ch.budget_percentage}%</span>
+                              <span className="text-sm font-medium text-text-primary">{ch.channel}</span>
+                              <span className="text-xs font-semibold text-text-secondary">AED {(ch.monthly_budget||0).toLocaleString()}/mo · {ch.budget_percentage}%</span>
                             </div>
-                            <p className="text-xs text-gray-500">{ch.rationale}</p>
+                            <p className="text-xs text-text-muted">{ch.rationale}</p>
                           </div>
                         ))}
                       </div>
@@ -647,13 +647,13 @@ function AuditPageInner() {
 
                   {marketStrategy.quick_wins?.length > 0 && (
                     <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Launch quick wins</p>
+                      <p className="text-[10px] font-semibold text-text-dim uppercase tracking-wider mb-2">Launch quick wins</p>
                       <div className="space-y-1.5">
                         {marketStrategy.quick_wins.map((w, i) => (
                           <div key={i} className="flex gap-2 items-start">
                             {w.timeline && <span className="text-[10px] bg-gray-900 text-yellow-400 px-1.5 py-0.5 rounded font-semibold shrink-0 mt-0.5">{w.timeline}</span>}
                             <div>
-                              <p className="text-xs text-gray-700">{typeof w === 'object' ? w.action : w}</p>
+                              <p className="text-xs text-text-secondary">{typeof w === 'object' ? w.action : w}</p>
                               {w.expected_impact && <p className="text-[10px] text-green-600 mt-0.5">→ {w.expected_impact}</p>}
                             </div>
                           </div>
@@ -667,15 +667,15 @@ function AuditPageInner() {
               {/* Past market audits */}
               {pastMarketAudits.length > 1 && (
                 <div className="mt-2">
-                  <p className="text-sm font-medium text-gray-900 mb-2">Past market audits</p>
+                  <p className="text-sm font-medium text-text-primary mb-2">Past market audits</p>
                   <div className="space-y-2">
                     {pastMarketAudits.slice(1).map(a => (
                       <div key={a.id} className="card px-4 py-3 flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-gray-700">{a.market} · {a.competitors?.filter(c=>c.name).length} competitors</p>
-                          <p className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>
+                          <p className="text-sm text-text-secondary">{a.market} · {a.competitors?.filter(c=>c.name).length} competitors</p>
+                          <p className="text-xs text-text-dim">{new Date(a.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</p>
                         </div>
-                        <button className="text-xs text-gray-500 hover:text-gray-800 border border-gray-200 rounded px-2 py-1" onClick={() => {
+                        <button className="text-xs text-text-muted hover:text-text-primary border border-surface-border-light rounded px-2 py-1" onClick={() => {
                           setMarketResult(a)
                           if (a.strategy_json) setMarketStrategy(a.strategy_json)
                         }}>View</button>
@@ -694,7 +694,7 @@ function AuditPageInner() {
 
 export default function AuditPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-gray-400">Loading...</div>}>
+    <Suspense fallback={<div className="p-6 text-sm text-text-dim">Loading...</div>}>
       <AuditPageInner />
     </Suspense>
   )
