@@ -23,6 +23,7 @@ function StrategyPageInner() {
   const [pastStrategies, setPastStrategies] = useState([])
   const [dataSources, setDataSources] = useState([])
   const [latestRoas, setLatestRoas] = useState(null)
+  const [market, setMarket] = useState('UAE')
 
   useEffect(() => {
     const supabase = createBrowserClient()
@@ -58,14 +59,18 @@ function StrategyPageInner() {
       supabase.from('strategies').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(5),
       supabase.from('audits').select('id,platform,created_at,raw_data_json').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1),
       supabase.from('competitor_analyses').select('id').eq('client_id', clientId).limit(1),
-    ]).then(([{ data: s }, { data: a }, { data: c }]) => {
+      supabase.from('market_audits').select('market').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1),
+    ]).then(([{ data: s }, { data: a }, { data: c }, { data: m }]) => {
       setPastStrategies(s || [])
-      const sources = ['Industry benchmarks (UAE/GCC market)']
+      const detectedMarket = m?.[0]?.market || 'UAE'
+      setMarket(detectedMarket)
+      const sources = [`Industry benchmarks (${detectedMarket} market)`]
       if (a?.length) {
         sources.push('Your past audit data')
         setLatestRoas(a[0]?.raw_data_json?.roas ?? null)
       }
       if (c?.length) sources.push('Competitor analysis')
+      if (m?.[0]?.market) sources.push(`Market audit (${m[0].market})`)
       setDataSources(sources)
     })
   }, [clientId, clients])
@@ -213,13 +218,13 @@ function StrategyPageInner() {
       const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agent: 'strategy', payload: { clientName: client.name, industry: client.industry, goal, budget: budget || client.monthly_budget || 10000, duration, channels, currentRoas: latestRoas } })
+        body: JSON.stringify({ agent: 'strategy', payload: { clientName: client.name, industry: client.industry, goal, budget: budget || client.monthly_budget || 10000, duration, channels, currentRoas: latestRoas, market, clientId } })
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error)
       setStrategy(data.strategy)
       const supabase = createBrowserClient()
-      await supabase.from('strategies').insert([{ client_id: clientId, title: `${goal} — ${duration}`, strategy_json: data.strategy, summary: data.strategy.executive_summary }])
+      await supabase.from('strategies').insert([{ client_id: clientId, title: `${goal} — ${duration}`, strategy_json: data.strategy, summary: data.strategy.executive_summary, market }])
       const { data: past } = await supabase.from('strategies').select('*').eq('client_id', clientId).order('created_at', { ascending: false }).limit(5)
       setPastStrategies(past || [])
     } catch (e) { alert('Error: ' + e.message) }
