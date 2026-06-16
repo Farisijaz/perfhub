@@ -1,4 +1,4 @@
-import { callClaude, safeJSON } from '@/lib/claude'
+import { callClaude, callClaudeWithSearch, safeJSON } from '@/lib/claude'
 import { createServerClient } from '@/lib/supabase'
 
 export async function POST(request) {
@@ -28,18 +28,20 @@ export async function POST(request) {
           ? `Spend: AED ${metrics.totals.spend.toFixed(2)} | Clicks: ${metrics.totals.clicks} | Impressions: ${metrics.totals.impressions.toLocaleString()} | Conversions: ${metrics.totals.conversions} | ROAS: ${metrics.roas.toFixed(2)}x | CPC: AED ${metrics.cpc.toFixed(2)} | CPM: AED ${metrics.cpm.toFixed(2)} | CPA: AED ${metrics.cpa.toFixed(2)} | CTR: ${metrics.ctr.toFixed(2)}% | Conv rate: ${metrics.convRate.toFixed(2)}%${metrics.frequency ? ` | Frequency: ${metrics.frequency.toFixed(1)}` : ''}`
           : 'No CSV uploaded — provide general best-practice audit recommendations.'
 
-        const text = await callClaude({
-          systemPrompt: `You are a senior performance marketing analyst at a leading digital agency in Dubai. Write direct, specific, client-ready audit reports. Write in plain flowing paragraphs only. Do not use markdown, headers, bullet points, asterisks, hashtags, or any special formatting. No bold text. Just clean professional paragraphs separated by line breaks.`,
+        const text = await callClaudeWithSearch({
+          systemPrompt: `You are a senior performance marketing analyst at a leading digital agency in Dubai. Search the web for current ${industry} ${platform === 'google' ? 'Google Ads' : 'Meta Ads'} benchmark reports before writing. Ground your analysis in real current industry data. Write in plain flowing paragraphs only. No markdown, no headers, no bullet points, no bold text.`,
           userPrompt: `Write a performance audit for ${clientName} (${industry}) — ${platform === 'google' ? 'Google Ads' : 'Meta Ads'}. Period: ${dateRange}. Currency is AED.
 
-Metrics: ${metricsText}
-Benchmarks: ROAS ${b.roas}x | CPA AED ${b.cpa} | CPC AED ${b.cpc} | CPM AED ${b.cpm}
+First search for: "${industry} ${platform === 'google' ? 'Google Ads' : 'Meta Ads'} benchmarks ${new Date().getFullYear()} average CPC CPM ROAS CPA"
 
-Write 4 paragraphs with no headers or formatting:
-Paragraph 1: Overall account health vs benchmarks.
-Paragraph 2: Top issues with specific numbers.
-Paragraph 3: Opportunities to scale.
-Paragraph 4: 3 priority actions with expected improvement.
+Client metrics: ${metricsText}
+Internal benchmarks: ROAS ${b.roas}x | CPA AED ${b.cpa} | CPC AED ${b.cpc} | CPM AED ${b.cpm}
+
+Write 4 paragraphs:
+Paragraph 1: Account health vs current industry benchmarks (reference live web data where found).
+Paragraph 2: Top issues with specific numbers compared to current market standards.
+Paragraph 3: Opportunities based on current market conditions and competitor trends.
+Paragraph 4: 3 priority actions with expected improvement percentages backed by industry data.
 End with one bottom-line sentence.`
         })
 
@@ -49,9 +51,11 @@ End with one bottom-line sentence.`
 
       case 'competitor': {
         const { clientName, industry, competitorName, competitorUrl } = payload
-        const text = await callClaude({
-          systemPrompt: `You are a senior competitive intelligence analyst at a performance marketing agency in Dubai. Be specific, data-driven, and actionable. Always respond with valid JSON only, no other text, no markdown.`,
+        const text = await callClaudeWithSearch({
+          systemPrompt: `You are a senior competitive intelligence analyst at a performance marketing agency in Dubai. Search the web to find real current information about this competitor — their website, active ads, social presence, recent campaigns, news, and market positioning. Always respond with valid JSON only, no other text, no markdown.`,
           userPrompt: `Analyse "${competitorName}" (${competitorUrl || 'no URL'}) as a competitor to ${clientName} in the ${industry || 'digital marketing'} industry in UAE/Middle East.
+
+Search for: "${competitorName} ads campaigns marketing ${new Date().getFullYear()}" and "${competitorName} digital advertising social media presence" and "${competitorUrl || competitorName} Google Ads Meta Ads"
 
 Respond with ONLY this JSON, no markdown, no backticks:
 {
@@ -85,9 +89,9 @@ Respond with ONLY this JSON, no markdown, no backticks:
       case 'strategy': {
         const { clientName, industry, goal, budget, duration, channels, currentRoas } = payload
         const hasTrackingIssue = currentRoas === 0 || currentRoas === '0' || currentRoas === '0.00'
-        const text = await callClaude({
-          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency in Dubai. Create comprehensive, highly actionable strategies for UAE/Middle East clients. Include specific keywords, bid strategies, budget splits, and timelines. Always respond with valid JSON only, no markdown, no backticks.`,
-          userPrompt: `Create a detailed performance marketing strategy for ${clientName} (${industry}).
+        const text = await callClaudeWithSearch({
+          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency in Dubai. Before building the strategy, search for current market conditions, competitor activity, and platform benchmark data for this industry and market. Create comprehensive, highly actionable strategies grounded in real current data. Always respond with valid JSON only, no markdown, no backticks.`,
+          userPrompt: `Create a detailed performance marketing strategy for ${clientName} (${industry}).\n\nSearch for current data: "${industry} digital marketing benchmarks ${market || 'UAE'} ${new Date().getFullYear()}" and "${industry} Google Ads Meta Ads average CPC ROAS ${new Date().getFullYear()}"
 Goal: ${goal} | Budget: AED ${budget}/month | Duration: ${duration} | Channels: ${channels.join(', ')} | Market: UAE
 ${hasTrackingIssue ? 'IMPORTANT: Conversion value tracking appears broken (ROAS showing 0). Include tracking fix as the highest priority action.' : ''}
 
@@ -272,9 +276,9 @@ Respond with ONLY this JSON:
       case 'market_audit': {
         const { clientName, industry, website, market, competitors, budget } = payload
         const competitorList = competitors.map((c, i) => `${i+1}. ${c.name}${c.website ? ' (' + c.website + ')' : ''}`).join('\n')
-        const text = await callClaude({
-          systemPrompt: `You are a senior performance marketing analyst specialising in paid advertising across global markets. You have deep knowledge of Google Ads and Meta Ads benchmarks, competitive landscapes, and market-specific consumer behaviour. Always respond with valid JSON only, no markdown, no backticks.`,
-          userPrompt: `Conduct a market audit for a NEW business entering paid advertising for the first time.
+        const text = await callClaudeWithSearch({
+          systemPrompt: `You are a senior performance marketing analyst specialising in paid advertising across global markets. Search the web extensively for real, current data on this market and industry before responding — including actual benchmark reports, competitor ad activity, platform statistics, and market intelligence. Always respond with valid JSON only, no markdown, no backticks.`,
+          userPrompt: `Conduct a market audit for a NEW business entering paid advertising for the first time.\n\nSearch for these before responding:\n1. "${industry} Google Ads benchmarks ${market} ${new Date().getFullYear()} CPC CPM ROAS"\n2. "${industry} Meta Ads benchmarks ${market} ${new Date().getFullYear()}"\n3. "${competitors.map(c=>c.name).join(' OR ')} digital advertising campaigns ${new Date().getFullYear()}"\n4. "paid advertising market ${market} ${industry} trends ${new Date().getFullYear()}"
 
 Client: ${clientName}
 Industry: ${industry}
@@ -347,9 +351,9 @@ Respond with ONLY this JSON:
 
       case 'market_strategy': {
         const { clientName, industry, website, market, budget, competitors, benchmarks, competitorIntel, opportunities, summary } = payload
-        const text = await callClaude({
-          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency. You build launch strategies for businesses entering paid advertising for the first time. Be specific, actionable, and tailored to the target market. Always respond with valid JSON only, no markdown, no backticks.`,
-          userPrompt: `Build a paid advertising LAUNCH strategy for a new business with no existing ad presence.
+        const text = await callClaudeWithSearch({
+          systemPrompt: `You are a senior performance marketing strategist at a leading digital agency. Search the web for the latest platform benchmark data, audience insights, and market conditions for this industry and target market before building the strategy. Be specific, actionable, and grounded in current real-world data. Always respond with valid JSON only, no markdown, no backticks.`,
+          userPrompt: `Build a paid advertising LAUNCH strategy for a new business with no existing ad presence.\n\nSearch for current data: "${industry} paid advertising launch strategy ${market} ${new Date().getFullYear()}" and "Google Ads ${industry} ${market} average CPC conversion rate ${new Date().getFullYear()}"
 
 Client: ${clientName}
 Industry: ${industry}
