@@ -323,7 +323,7 @@ function CreativePageInner() {
 
               {activeAdTab === 'copy' && (
                 <div className="space-y-4">
-                  {ads.ab_test_recommendation && <div className="card p-3 bg-status-blue-bg" style={{borderColor:"rgba(96,165,250,0.2)"}}"><p className="text-xs font-bold text-status-blue mb-1">A/B test recommendation</p><p className="text-sm text-status-blue">{ads.ab_test_recommendation}</p></div>}
+                  {ads.ab_test_recommendation && <div className="card p-3 bg-status-blue-bg" style={{borderColor:"rgba(96,165,250,0.2)"}}><p className="text-xs font-bold text-status-blue mb-1">A/B test recommendation</p><p className="text-sm text-status-blue">{ads.ab_test_recommendation}</p></div>}
                   {(ads.ads||[]).map((ad, i) => (
                     <div key={i} className="card p-4">
                       <div className="flex items-center justify-between mb-3">
@@ -346,7 +346,7 @@ function CreativePageInner() {
                         )}
                         {ad.primary_text && <div><p className="text-[10px] font-medium text-text-secondary uppercase tracking-wider mb-1.5">Primary text</p><div className="flex items-start justify-between rounded px-3 py-2" style={{background:"#111827",border:"1px solid #1e2a48"}}><span className="text-sm text-text-primary flex-1 mr-2">{ad.primary_text}</span><button onClick={()=>copy(ad.primary_text,`pt-${i}`)} className="text-text-muted hover:text-text-primary shrink-0 mt-0.5">{copied===`pt-${i}`?<Check size={11}/>:<Copy size={11}/>}</button></div></div>}
                         {ad.body_copy && <div><p className="text-[10px] font-medium text-text-secondary uppercase tracking-wider mb-1.5">Body copy</p><div className="flex items-start justify-between rounded px-3 py-2" style={{background:"#111827",border:"1px solid #1e2a48"}}><span className="text-sm text-text-primary flex-1 mr-2">{ad.body_copy}</span><button onClick={()=>copy(ad.body_copy,`bc-${i}`)} className="text-text-muted hover:text-text-primary shrink-0 mt-0.5">{copied===`bc-${i}`?<Check size={11}/>:<Copy size={11}/>}</button></div></div>}
-                        {ad.image_direction && <div><p className="text-[10px] font-medium text-text-secondary uppercase tracking-wider mb-1.5">Creative direction</p><p className="text-sm text-text-secondary italic px-3 py-2 rounded border-l-2" style={{background:"#2a1f00",borderColor:"#f59e0b"}}">{ad.image_direction}</p></div>}
+                        {ad.image_direction && <div><p className="text-[10px] font-medium text-text-secondary uppercase tracking-wider mb-1.5">Creative direction</p><p className="text-sm text-text-secondary italic px-3 py-2 rounded border-l-2" style={{background:"#2a1f00",borderColor:"#f59e0b"}}>{ad.image_direction}</p></div>}
                       </div>
                     </div>
                   ))}
